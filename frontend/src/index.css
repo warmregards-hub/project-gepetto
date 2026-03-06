@@ -5,15 +5,14 @@
   --color-accent-hover: #d76e46;
   --font-sans: "Instrument Serif", serif;
   --font-serif: "Instrument Serif", serif;
-  --font-mono: "Instrument Serif", serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  --font-doto: "Doto", ui-monospace, monospace;
 }
 
 @layer base {
   body {
-    @apply bg-white text-zinc-950 antialiased tracking-tight;
+    @apply bg-[#FAF9F6] text-zinc-950 antialiased tracking-tight;
     font-size: 22px;
-    font-weight: 600;
-    line-height: 1.4;
   }
 
   h1,
@@ -24,4 +23,80 @@
   h6 {
     @apply font-bold;
   }
+}
+
+@keyframes phrase-fade {
+
+  0%,
+  10% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  20%,
+  80% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  90%,
+  100% {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes message-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes meteor {
+  0% {
+    transform: rotate(145deg) translateX(0);
+    opacity: 0;
+  }
+
+  20% {
+    opacity: 1;
+  }
+
+  100% {
+    transform: rotate(145deg) translateX(2400px);
+    opacity: 0;
+  }
+}
+
+@keyframes pulseFull {
+  0%, 100% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.animate-phrase {
+  animation: phrase-fade 3s infinite;
+}
+
+.animate-message-in {
+  animation: message-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-meteor {
+  position: absolute;
+  animation: meteor 5s linear infinite;
+  pointer-events: none;
+}
+
+.font-doto {
+  font-family: var(--font-doto);
 }

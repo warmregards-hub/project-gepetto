@@ -8,9 +8,9 @@ export function VoiceInput() {
         <button
             type="button"
             onClick={isRecording ? stopRecording : startRecording}
-            className={`p-4 rounded-[20px] transition-all shrink-0 shadow-lg flex items-center justify-center border-2 ${isRecording
-                ? 'bg-red-500/10 text-red-500 hover:bg-red-500/20 border-red-500/30 animate-pulse scale-105'
-                : 'bg-white text-zinc-500 hover:bg-zinc-50 hover:text-zinc-950 border-zinc-100 hover:border-zinc-300'
+            className={`h-[72px] w-[72px] rounded-[20px] transition-all shrink-0 shadow-lg flex items-center justify-center border-2 ${isRecording
+                ? 'bg-red-500/20 text-red-600 hover:bg-red-500/30 border-red-500/40 animate-pulse scale-105'
+                : 'bg-rose-500 text-white hover:bg-rose-600 border-rose-500'
                 }`}
             title={isRecording ? "Stop Recording" : "Start Voice Input"}
         >

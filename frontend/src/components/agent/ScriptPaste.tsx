@@ -18,7 +18,7 @@ export function ScriptPaste({ onSend, disabled }: Props) {
     };
 
     return (
-        <form onSubmit={handleSubmit} className="relative flex items-center gap-2 bg-white border border-zinc-200 rounded-[24px] p-2 shadow-md focus-within:ring-4 focus-within:ring-accent/5 focus-within:border-accent transition-all group overflow-hidden">
+        <form onSubmit={handleSubmit} className="relative flex items-center gap-2 bg-white border border-zinc-200 rounded-[24px] p-2 shadow-md focus-within:ring-4 focus-within:ring-accent/5 focus-within:border-accent transition-all group overflow-hidden min-h-[72px]">
             <button
                 type="button"
                 className="p-3 text-zinc-400 hover:text-zinc-600 transition-colors shrink-0 bg-zinc-50 rounded-xl"

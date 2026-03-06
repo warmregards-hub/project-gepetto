@@ -31,8 +31,8 @@ export function AgentPage() {
     };
 
     return (
-        <div className="flex flex-col h-full bg-white">
-            <header className="flex-none p-4 md:p-6 border-b border-zinc-100 flex items-center bg-white/80 backdrop-blur-sm min-h-[80px] md:min-h-[96px] gap-3 md:gap-6">
+        <div className="flex flex-col h-full bg-transparent">
+            <header className="flex-none p-4 md:p-6 border-b border-zinc-100 flex items-center bg-white/50 backdrop-blur-md min-h-[80px] md:min-h-[96px] gap-3 md:gap-6">
                 {/* Mobile Menu Toggle */}
                 <button
                     onClick={() => setSidebarOpen(true)}
@@ -60,7 +60,7 @@ export function AgentPage() {
                 </div>
             )}
 
-            <footer className="flex-none p-4 md:p-8 border-t border-zinc-100 bg-zinc-50/80 backdrop-blur-sm min-h-[100px] md:min-h-[120px]">
+            <footer className="flex-none p-4 md:p-8 border-t border-zinc-100 bg-zinc-50/50 backdrop-blur-md min-h-[100px] md:min-h-[120px]">
                 <div className="max-w-5xl mx-auto flex items-end gap-3 md:gap-6">
                     <VoiceInput />
                     <div className="flex-1">
@@ -71,3 +71,4 @@ export function AgentPage() {
         </div>
     );
 }
+

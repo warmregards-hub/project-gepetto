@@ -158,7 +158,7 @@ class KieClient:
     VIDEO_FALLBACKS = ["veo-3.1-fast", "veo-3.1", "kling", "runway-aleph", "sora2"]
 
     def __init__(self):
-        self.api_key = settings.kie_api_key
+        self.api_key = (settings.kie_api_key or "").strip()
         base_url = settings.kie_base_url.rstrip("/")
         if base_url.endswith("/v1"):
             base_url = base_url[:-3]
@@ -181,16 +181,7 @@ class KieClient:
         if tools:
             payload["tools"] = tools
             payload["tool_choice"] = "auto"
-        endpoints = self.registry.get_candidates(
-            model,
-            "chat",
-            [
-                f"{self.base_url}/{model}/v1/chat/completions",
-                f"{self.base_url}/v1/chat/completions",
-                f"{self.base_url}/api/v1/chat/completions",
-                f"{self.base_url}/chat/completions",
-            ],
-        )
+        endpoints = [f"{self.base_url}/{model}/v1/chat/completions"]
         last_error = None
         for endpoint in endpoints:
             result = await self._post_with_retries(endpoint, payload, model, "chat")

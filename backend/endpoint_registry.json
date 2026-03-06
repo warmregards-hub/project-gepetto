@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-03-06T04:19:25.542893+00:00",
+  "updated_at": "2026-03-06T10:15:55.785633+00:00",
   "models": {
     "claude-sonnet-4-5": {
       "chat": {
@@ -549,35 +549,35 @@
         "endpoints": {
           "https://api.kie.ai/v1/models": {
             "success_count": 0,
-            "failure_count": 74,
-            "consecutive_failures": 74,
+            "failure_count": 76,
+            "consecutive_failures": 76,
             "last_success": null,
-            "last_failure": "2026-03-06T03:47:42.798501+00:00",
+            "last_failure": "2026-03-06T06:55:54.132976+00:00",
             "last_status_code": 404,
             "last_error_type": "http_status",
-            "last_error_message": "{\"timestamp\":1772768862198,\"status\":404,\"error\":\"Not Found\",\"message\":\"No message available\",\"path\":\"/v1/models\"}",
+            "last_error_message": "{\"timestamp\":1772780153222,\"status\":404,\"error\":\"Not Found\",\"message\":\"No message available\",\"path\":\"/v1/models\"}",
             "last_params": {}
           },
           "https://api.kie.ai/models": {
             "success_count": 0,
-            "failure_count": 73,
-            "consecutive_failures": 73,
+            "failure_count": 75,
+            "consecutive_failures": 75,
             "last_success": null,
-            "last_failure": "2026-03-06T03:47:42.391138+00:00",
+            "last_failure": "2026-03-06T06:55:53.706198+00:00",
             "last_status_code": 404,
             "last_error_type": "http_status",
-            "last_error_message": "{\"timestamp\":1772768861791,\"status\":404,\"error\":\"Not Found\",\"message\":\"No message available\",\"path\":\"/models\"}",
+            "last_error_message": "{\"timestamp\":1772780152796,\"status\":404,\"error\":\"Not Found\",\"message\":\"No message available\",\"path\":\"/models\"}",
             "last_params": {}
           },
           "https://api.kie.ai/api/v1/models": {
             "success_count": 0,
-            "failure_count": 73,
-            "consecutive_failures": 73,
+            "failure_count": 75,
+            "consecutive_failures": 75,
             "last_success": null,
-            "last_failure": "2026-03-06T03:47:42.595554+00:00",
+            "last_failure": "2026-03-06T06:55:53.914221+00:00",
             "last_status_code": 404,
             "last_error_type": "http_status",
-            "last_error_message": "{\"timestamp\":1772768861995,\"status\":404,\"error\":\"Not Found\",\"message\":\"No message available\",\"path\":\"/api/v1/models\"}",
+            "last_error_message": "{\"timestamp\":1772780153002,\"status\":404,\"error\":\"Not Found\",\"message\":\"No message available\",\"path\":\"/api/v1/models\"}",
             "last_params": {}
           }
         },
@@ -589,11 +589,11 @@
       "chat": {
         "endpoints": {
           "https://api.kie.ai/gemini-2.5-flash/v1/chat/completions": {
-            "success_count": 56,
-            "failure_count": 35,
+            "success_count": 76,
+            "failure_count": 44,
             "consecutive_failures": 0,
-            "last_success": "2026-03-06T04:19:25.542696+00:00",
-            "last_failure": "2026-03-06T03:46:45.677096+00:00",
+            "last_success": "2026-03-06T10:15:55.785426+00:00",
+            "last_failure": "2026-03-06T06:35:53.208221+00:00",
             "last_status_code": 200,
             "last_error_type": null,
             "last_error_message": null,
@@ -602,71 +602,11 @@
               "messages": [
                 {
                   "role": "system",
-                  "content": "You are Agent Gepetto. Active project: drew-5trips.\nYou are the agent. Decide what to do next.\nWhen the user requests generation, you MUST either call a tool or ask a clarification question.\nIf the user already specified a model earlier in the conversation, use that exact model without asking again.\nIf the user states a lasting preference or rule (e.g. 'for this project', 'always', 'only', 'never'), you MUST call update_project_preferences to save it and then confirm it was saved.\n\n**Generating Images / Videos**\nDo NOT assume or hardcode what models exist or what models are best. The available models are dynamic.\nIf a specific model is not explicitly requested by the user or defined in the preferences, you MUST use the `search_available_models` tool to query Kie.ai for the currently available options.\nIf the choice is ambiguous, ask the user. Pass the exact model name string to the `model` parameter.\nIf the tool returns an error, gracefully inform the user, log the failure, and attempt a retry using a different model from the available list or a modified prompt.\nNever expose raw API errors.\nLearned/project preferences:\n## Global Rules (all projects)\n# Global Agent Preferences\n# These apply to ALL projects unless overridden by per-project preferences.\n\n## Aspect Ratios\n- UGC content (selfies, testimonials, lifestyle, talking head, product demos): ALWAYS 9:16 portrait\n- Product shots, still life, pack shots: ALWAYS 1:1 square\n- Cinematic / brand film stills: ALWAYS 16:9 landscape\n- Default if not specified: 1:1\n\n## Generation Defaults\n- Variants per request: 4 (2 concepts \u00d7 2 variants)\n- Default style: photorealistic unless brief specifies otherwise\n- Default image model: gpt-image-1\n- Default video model: veo-3.1-fast\n\n## UGC Rules\n- UGC images must look organic and unposed \u2014 not professional photography\n- Natural lighting preferred (window light, ambient)\n- Slight motion blur or camera shake is acceptable and preferred\n- No studio lighting, no seamless backgrounds\n- Subject should look directly at camera unless brief specifies otherwise\n\n## Quality Gates (human review \u2014 NO automated scoring)\n- All variants go to the human review gallery\n- Only auto-reject: API error, corrupt file, or completely blank image\n- Human always makes final keep/reject decision\n\n## Prompt Construction\n- Always include aspect ratio as parameter (e.g. --ar 9:16 for Midjourney, or in prompt text for others)\n- Always include the model explicitly in the tool call\n- Keep prompts concise \u2014 describe the shot, not a novel\n\n\n## Project-Specific Rules (override global)\n# [Client Name] - Project Preferences\n# TEMPLATE - fill in with real details for this client\n\n## Client\n- Brand: [brand name]\n- Contact: [contact name]\n- Content type: [e.g. UGC social media, brand graphics, promo videos]\n\n## Visual Style\n- [describe the look and feel]\n- [colour palette, lighting, mood]\n- [what to include]\n- Avoid: [what NOT to do]\n\n## QC Standards\n- Minimum score: [7.0-9.0]/10\n- Key criteria: [what matters most - face realism, brand accuracy, etc.]\n- Auto-reject: [dealbreakers - extra fingers, wrong colours, etc.]\n\n## Prompt Patterns\n- Always include: \"[key style words that should be in every prompt]\"\n- Avoid in prompts: \"[words that produce wrong results]\"\n\n## Reference Assets\n- Product images, logos, and reference material go in the /assets/ subfolder\n- The agent can access these when generating (e.g. for image-to-image, style reference)\n\n## Notes\n- [any other context the agent should know about this client]\n- [delivery preferences, turnaround expectations, etc.]\n\n\n## Learned Patterns (auto-generated from your feedback)\n- Additions: \n- Exclusions: \n- Positive patterns: \n- Negative patterns:"
+                  "content": "You are Agent Gepetto. Active project: drew-5trips.\nYou are the agent. Decide what to do next.\nWhen the user requests generation, you MUST either call a tool or ask a clarification question.\nIf the user already specified a model earlier in the conversation, use that exact model without asking again.\nIf the user states a lasting preference or rule (e.g. 'for this project', 'always', 'only', 'never'), you MUST call update_project_preferences to save it silently.\n\n**Generating Images / Videos**\nDo NOT assume or hardcode what models exist or what models are best. The available models are dynamic.\nIf a specific model is not explicitly requested by the user or defined in the preferences, you MUST use the `search_available_models` tool to query Kie.ai for the currently available options.\nIf the choice is ambiguous, ask the user. Pass the exact model name string to the `model` parameter.\nIf the tool returns an error, gracefully inform the user, log the failure, and attempt a retry using a different model from the available list or a modified prompt.\nNever expose raw API errors.\nLearned/project preferences:\n## Global Rules (all projects)\n# Global Agent Preferences\n# These apply to ALL projects unless overridden by per-project preferences.\n\n## Aspect Ratios\n- UGC content (selfies, testimonials, lifestyle, talking head, product demos): ALWAYS 9:16 portrait\n- Product shots, still life, pack shots: ALWAYS 1:1 square\n- Cinematic / brand film stills: ALWAYS 16:9 landscape\n- Default if not specified: 1:1\n\n## Generation Defaults\n- Variants per request: 4 (2 concepts \u00d7 2 variants)\n- Default style: photorealistic unless brief specifies otherwise\n- Default image model: gpt-image-1\n- Default video model: veo-3.1-fast\n\n## UGC Rules\n- UGC images must look organic and unposed \u2014 not professional photography\n- Natural lighting preferred (window light, ambient)\n- Slight motion blur or camera shake is acceptable and preferred\n- No studio lighting, no seamless backgrounds\n- Subject should look directly at camera unless brief specifies otherwise\n\n## Quality Gates (human review \u2014 NO automated scoring)\n- All variants go to the human review gallery\n- Only auto-reject: API error, corrupt file, or completely blank image\n- Human always makes final keep/reject decision\n\n## Prompt Construction\n- Always include aspect ratio as parameter (e.g. --ar 9:16 for Midjourney, or in prompt text for others)\n- Always include the model explicitly in the tool call\n- Keep prompts concise \u2014 describe the shot, not a novel\n\n## Auto Updates\n- selfie.aspect_ratio: 9:16\n\n\n## Project-Specific Rules (override global)\n# [Client Name] - Project Preferences\n# TEMPLATE - fill in with real details for this client\n\n## Client\n- Brand: [brand name]\n- Contact: [contact name]\n- Content type: [e.g. UGC social media, brand graphics, promo videos]\n\n## Visual Style\n- [describe the look and feel]\n- [colour palette, lighting, mood]\n- [what to include]\n- Avoid: [what NOT to do]\n\n## QC Standards\n- Minimum score: [7.0-9.0]/10\n- Key criteria: [what matters most - face realism, brand accuracy, etc.]\n- Auto-reject: [dealbreakers - extra fingers, wrong colours, etc.]\n\n## Prompt Patterns\n- Always include: \"[key style words that should be in every prompt]\"\n- Avoid in prompts: \"[words that produce wrong results]\"\n\n## Reference Assets\n- Product images, logos, and reference material go in the /assets/ subfolder\n- The agent can access these when generating (e.g. for image-to-image, style reference)\n\n## Notes\n- [any other context the agent should know about this client]\n- [delivery preferences, turnaround expectations, etc.]\n\n\n## Learned Patterns (auto-generated from your feedback)\n- Additions: \n- Exclusions: \n- Positive patterns: \n- Negative patterns:"
                 },
                 {
                   "role": "user",
-                  "content": "hello"
-                },
-                {
-                  "role": "assistant",
-                  "content": "Hello there! How can I help you today with your project?"
-                },
-                {
-                  "role": "user",
-                  "content": "lets generate an image using z-image , lets do a mirro selfie,. whatever"
-                },
-                {
-                  "role": "assistant",
-                  "content": "Generated 1.\n\n![variant_0](/api/storage/download/drew-5trips/generated/gen_1517d88616b64b42a1714f9741f58eea_0.jpg)"
-                },
-                {
-                  "role": "user",
-                  "content": "selfies should always be 9:16"
-                },
-                {
-                  "role": "system",
-                  "content": "You must respond with a tool call when the user requests image generation. Do not describe or claim images were generated unless a tool call was executed."
-                },
-                {
-                  "role": "system",
-                  "content": "You must respond with a tool call when the user requests image generation. Do not describe or claim images were generated unless a tool call was executed."
-                },
-                {
-                  "role": "system",
-                  "content": "You must respond with a tool call when the user requests image generation. Do not describe or claim images were generated unless a tool call was executed."
-                },
-                {
-                  "role": "system",
-                  "content": "You must respond with a tool call when the user requests image generation. Do not describe or claim images were generated unless a tool call was executed."
-                },
-                {
-                  "role": "system",
-                  "content": "You must respond with a tool call when the user requests image generation. Do not describe or claim images were generated unless a tool call was executed."
-                },
-                {
-                  "role": "system",
-                  "content": "You must respond with a tool call when the user requests image generation. Do not describe or claim images were generated unless a tool call was executed."
-                },
-                {
-                  "role": "system",
-                  "content": "You must respond with a tool call when the user requests image generation. Do not describe or claim images were generated unless a tool call was executed."
-                },
-                {
-                  "role": "system",
-                  "content": "You must respond with a tool call when the user requests image generation. Do not describe or claim images were generated unless a tool call was executed."
-                },
-                {
-                  "role": "system",
-                  "content": "You must respond with a tool call when the user requests image generation. Do not describe or claim images were generated unless a tool call was executed."
-                },
-                {
-                  "role": "system",
-                  "content": "You must respond with a tool call when the user requests image generation. Do not describe or claim images were generated unless a tool call was executed."
-                },
-                {
-                  "role": "system",
-                  "content": "You must respond with a tool call when the user requests image generation. Do not describe or claim images were generated unless a tool call was executed."
+                  "content": "hi"
                 }
               ],
               "tools": [
@@ -912,30 +852,41 @@
           },
           "https://api.kie.ai/v1/chat/completions": {
             "success_count": 0,
-            "failure_count": 6,
-            "consecutive_failures": 6,
+            "failure_count": 18,
+            "consecutive_failures": 18,
             "last_success": null,
-            "last_failure": "2026-03-06T03:46:46.418511+00:00",
+            "last_failure": "2026-03-06T06:44:15.409699+00:00",
             "last_status_code": 404,
             "last_error_type": "http_status",
-            "last_error_message": "{\"timestamp\":1772768805792,\"status\":404,\"error\":\"Not Found\",\"message\":\"No message available\",\"path\":\"/v1/chat/completions\"}",
+            "last_error_message": "{\"timestamp\":1772779454519,\"status\":404,\"error\":\"Not Found\",\"message\":\"No message available\",\"path\":\"/v1/chat/completions\"}",
             "last_params": {}
           },
           "https://api.kie.ai/chat/completions": {
             "success_count": 0,
-            "failure_count": 2,
-            "consecutive_failures": 2,
+            "failure_count": 11,
+            "consecutive_failures": 11,
             "last_success": null,
-            "last_failure": "2026-03-06T03:46:46.060656+00:00",
+            "last_failure": "2026-03-06T06:35:53.759363+00:00",
             "last_status_code": 404,
             "last_error_type": "http_status",
-            "last_error_message": "{\"timestamp\":1772768805461,\"status\":404,\"error\":\"Not Found\",\"message\":\"No message available\",\"path\":\"/chat/completions\"}",
+            "last_error_message": "{\"timestamp\":1772778952882,\"status\":404,\"error\":\"Not Found\",\"message\":\"No message available\",\"path\":\"/chat/completions\"}",
+            "last_params": {}
+          },
+          "https://api.kie.ai/api/v1/chat/completions": {
+            "success_count": 0,
+            "failure_count": 12,
+            "consecutive_failures": 12,
+            "last_success": null,
+            "last_failure": "2026-03-06T06:44:59.157899+00:00",
+            "last_status_code": 500,
+            "last_error_type": "api_error",
+            "last_error_message": "Operation not found: gemini-2.5-flash",
             "last_params": {}
           }
         },
         "status": "healthy",
         "last_success_url": "https://api.kie.ai/gemini-2.5-flash/v1/chat/completions",
-        "last_failure_url": "https://api.kie.ai/v1/chat/completions"
+        "last_failure_url": "https://api.kie.ai/api/v1/chat/completions"
       }
     },
     "z-image": {
@@ -986,10 +937,10 @@
             "last_params": {}
           },
           "https://api.kie.ai/api/v1/jobs/createTask": {
-            "success_count": 1,
+            "success_count": 6,
             "failure_count": 0,
             "consecutive_failures": 0,
-            "last_success": "2026-03-06T03:47:43.075560+00:00",
+            "last_success": "2026-03-06T06:58:00.476340+00:00",
             "last_failure": null,
             "last_status_code": 200,
             "last_error_type": null,
@@ -997,8 +948,8 @@
             "last_params": {
               "model": "z-image",
               "input": {
-                "prompt": "lets generate an image , lets do a mirro selfie,. whatever",
-                "aspect_ratio": "1:1"
+                "prompt": "Mirror selfie of a person in a softly lit room, casual outfit, natural light, handheld feel, authentic UGC look",
+                "aspect_ratio": "9:16"
               }
             }
           }
@@ -1009,7 +960,7 @@
       },
       "poll_image": {
         "status": "healthy",
-        "last_success_url": "https://api.kie.ai/api/v1/jobs/recordInfo?taskId=ee4cbba68dfdacecb47be27d0ac66d91",
+        "last_success_url": "https://api.kie.ai/api/v1/jobs/recordInfo?taskId=2112b7c4b3eb846c76cb8e04d282c4ae",
         "last_failure_url": null,
         "endpoints": {
           "https://api.kie.ai/api/v1/jobs/recordInfo?taskId=ee4cbba68dfdacecb47be27d0ac66d91": {
@@ -1017,6 +968,71 @@
             "failure_count": 0,
             "consecutive_failures": 0,
             "last_success": "2026-03-06T03:47:59.117073+00:00",
+            "last_failure": null,
+            "last_status_code": 200,
+            "last_error_type": null,
+            "last_error_message": null,
+            "last_params": {
+              "method": "GET"
+            }
+          },
+          "https://api.kie.ai/api/v1/jobs/recordInfo?taskId=11bbf8339aedb96de04b95988487dfe3": {
+            "success_count": 22,
+            "failure_count": 0,
+            "consecutive_failures": 0,
+            "last_success": "2026-03-06T06:48:44.606751+00:00",
+            "last_failure": null,
+            "last_status_code": 200,
+            "last_error_type": null,
+            "last_error_message": null,
+            "last_params": {
+              "method": "GET"
+            }
+          },
+          "https://api.kie.ai/api/v1/jobs/recordInfo?taskId=31c90569464abb215dac1eac88b5e042": {
+            "success_count": 14,
+            "failure_count": 0,
+            "consecutive_failures": 0,
+            "last_success": "2026-03-06T06:56:39.359822+00:00",
+            "last_failure": null,
+            "last_status_code": 200,
+            "last_error_type": null,
+            "last_error_message": null,
+            "last_params": {
+              "method": "GET"
+            }
+          },
+          "https://api.kie.ai/api/v1/jobs/recordInfo?taskId=182b8a017b083a8c9301ccfa89dd677b": {
+            "success_count": 16,
+            "failure_count": 0,
+            "consecutive_failures": 0,
+            "last_success": "2026-03-06T06:57:31.055427+00:00",
+            "last_failure": null,
+            "last_status_code": 200,
+            "last_error_type": null,
+            "last_error_message": null,
+            "last_params": {
+              "method": "GET"
+            }
+          },
+          "https://api.kie.ai/api/v1/jobs/recordInfo?taskId=645e643b403d5f5cdb8df07085e8bfb3": {
+            "success_count": 9,
+            "failure_count": 0,
+            "consecutive_failures": 0,
+            "last_success": "2026-03-06T06:58:00.216717+00:00",
+            "last_failure": null,
+            "last_status_code": 200,
+            "last_error_type": null,
+            "last_error_message": null,
+            "last_params": {
+              "method": "GET"
+            }
+          },
+          "https://api.kie.ai/api/v1/jobs/recordInfo?taskId=2112b7c4b3eb846c76cb8e04d282c4ae": {
+            "success_count": 9,
+            "failure_count": 0,
+            "consecutive_failures": 0,
+            "last_success": "2026-03-06T06:58:29.406705+00:00",
             "last_failure": null,
             "last_status_code": 200,
             "last_error_type": null,

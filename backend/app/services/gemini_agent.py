@@ -279,6 +279,68 @@ class GeminiAgentService:
             updated_prompts.append(" ".join(updated.split()))
         return updated_prompts
 
+    def _default_prompt_from_hint(self, text: str) -> str:
+        lowered = text.lower()
+        if "mirror selfie" in lowered:
+            return (
+                "Mirror selfie of a person in a softly lit room, casual outfit, "
+                "natural light, handheld feel, authentic UGC look"
+            )
+        if "selfie" in lowered:
+            return (
+                "Selfie of a person in a softly lit room, casual outfit, natural light, "
+                "handheld feel, authentic UGC look"
+            )
+        if "product" in lowered:
+            return "Product shot on a clean surface, natural light, crisp focus"
+        if "portrait" in lowered:
+            return "Portrait of a person, natural light, candid expression, authentic feel"
+        return "Candid UGC photo of a person in a cozy indoor space, natural light, handheld feel"
+
+    def _rewrite_prompt(self, prompt: str, model: str | None) -> str:
+        if not prompt:
+            return prompt
+        original = prompt
+        lowered = original.lower()
+        instruction_markers = [
+            "please",
+            "can you",
+            "could you",
+            "generate",
+            "create",
+            "make",
+            "do",
+            "with",
+            "using",
+        ]
+        has_instruction = any(marker in lowered for marker in instruction_markers)
+        if model and model.lower() in lowered:
+            has_instruction = True
+
+        cleaned = original
+        if model:
+            cleaned = re.sub(re.escape(model), "", cleaned, flags=re.IGNORECASE)
+        cleaned = re.sub(r"\b(using|use|with)\s+[^\n\r\.,;]+", "", cleaned, flags=re.IGNORECASE)
+        cleaned = re.sub(r"\b\d+\s*(variations|variants|vairations)\b", "", cleaned, flags=re.IGNORECASE)
+        cleaned = re.sub(r"\b\d+\s*(images|image|pics|pic|frames|frame)\b", "", cleaned, flags=re.IGNORECASE)
+        cleaned = re.sub(r"\bplease\b", "", cleaned, flags=re.IGNORECASE)
+        cleaned = re.sub(r"\b(can|could)\s+you\b", "", cleaned, flags=re.IGNORECASE)
+        cleaned = re.sub(r"\b(generate|create|make|do)\b", "", cleaned, flags=re.IGNORECASE)
+        cleaned = " ".join(cleaned.split())
+
+        improv_markers = ["whatever", "anything", "make it up", "surprise me", "you choose", "free to do"]
+        if any(marker in lowered for marker in improv_markers):
+            return self._default_prompt_from_hint(original)
+
+        if len(cleaned.split()) < 4 or has_instruction:
+            if "selfie" in cleaned.lower() or "mirror" in cleaned.lower():
+                return self._default_prompt_from_hint(cleaned)
+            if cleaned:
+                return f"{cleaned}, natural light, authentic UGC look"
+            return self._default_prompt_from_hint(original)
+
+        return cleaned
+
     def _detect_scope(self, message: str, active_project: str) -> tuple[str, str | None]:
         lowered = message.lower()
         project_map = {
@@ -412,6 +474,16 @@ class GeminiAgentService:
                 tool_project = args.get("project_id") or project_id or "default"
                 if not prompts:
                     prompts = [""]
+
+                if len(prompts) == 1 and isinstance(prompts[0], str):
+                    variations_match = re.search(r"\b(\d+)\s*(variations|variants|vairations)\b", prompts[0], flags=re.IGNORECASE)
+                    if variations_match:
+                        count = max(1, int(variations_match.group(1)))
+                        cleaned_prompt = re.sub(r"\b\d+\s*(variations|variants|vairations)\b", "", prompts[0], flags=re.IGNORECASE)
+                        cleaned_prompt = " ".join(cleaned_prompt.split())
+                        prompts = [cleaned_prompt or prompts[0] for _ in range(count)]
+
+                prompts = [self._rewrite_prompt(p, model) for p in prompts]
 
                 if not model:
                     return {
@@ -746,6 +818,18 @@ class GeminiAgentService:
             await self._broadcast({"type": "progress", "data": {"task": "thinking", "progress": min(90, 10 + loop_step * 6)}})
             response = await self.kie_client.chat_completion(messages, tools=self.tools)
             try:
+                credits = response.get("credits_consumed") if isinstance(response, dict) else None
+                if isinstance(credits, (int, float)) and credits > 0:
+                    await self.cost_tracker.log_cost(
+                        float(credits),
+                        "kie-chat",
+                        "gemini-2.5-flash",
+                        project_id,
+                        "Agent chat completion",
+                    )
+            except Exception:
+                pass
+            try:
                 self._debug_log(
                     f"chat_response loop={loop_step} "
                     + json.dumps(response, default=str)[:4000]
@@ -775,6 +859,8 @@ class GeminiAgentService:
                 ]
             content = message.get("content")
             assistant_text = _extract_text(content).strip()
+            if assistant_text:
+                assistant_text = re.sub(r"<system-reminder>.*?</system-reminder>", "", assistant_text, flags=re.DOTALL).strip()
             if isinstance(assistant_text, str) and "data:image" in assistant_text:
                 self._debug_log("blocked_inline_image_response")
                 messages.append(
