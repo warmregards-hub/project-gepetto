@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useAgentStore } from '../../stores/agentStore';
 import { useProjectStore } from '../../stores/projectStore';
 import { SkeletonMessage } from '../shared/LoadingStates';
@@ -8,8 +8,38 @@ import { Check, X, BookmarkPlus } from 'lucide-react';
 
 export function ConversationView() {
     const { messages, isProcessing } = useAgentStore();
-    const { saveAsset, rejectAsset, savedAssets, rejectedAssets, activeProject } = useProjectStore();
+    const { saveAsset, rejectAsset, savedAssets, rejectedAssets, activeProject, projects } = useProjectStore();
     const [imageLayouts, setImageLayouts] = useState<Record<string, 'landscape' | 'portrait' | 'square'>>({});
+
+    const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+    const formatProjectNames = (content: string) => {
+        if (!content || projects.length === 0) return content;
+        const linkPattern = /!\[[^\]]*\]\([^\)]+\)|\[[^\]]*\]\([^\)]+\)/g;
+        const segments: Array<{ text: string; isLink: boolean }> = [];
+        let lastIndex = 0;
+        let match: RegExpExecArray | null;
+
+        while ((match = linkPattern.exec(content)) !== null) {
+            segments.push({ text: content.slice(lastIndex, match.index), isLink: false });
+            segments.push({ text: match[0], isLink: true });
+            lastIndex = match.index + match[0].length;
+        }
+        segments.push({ text: content.slice(lastIndex), isLink: false });
+
+        return segments
+            .map((segment) => {
+                if (segment.isLink) return segment.text;
+                return projects.reduce((acc, project) => {
+                    const escapedId = escapeRegex(project.id);
+                    const codePattern = new RegExp('`' + escapedId + '`', 'g');
+                    const plainPattern = new RegExp(`(?<![A-Za-z0-9-])${escapedId}(?![A-Za-z0-9-])`, 'g');
+                    const withName = `*${project.name}*`;
+                    return acc.replace(codePattern, withName).replace(plainPattern, withName);
+                }, segment.text);
+            })
+            .join('');
+    };
 
     const normalizeImageSrc = (rawSrc: string) => {
         const trimmed = rawSrc.trim();
@@ -59,22 +89,54 @@ export function ConversationView() {
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [messages, savedAssets, rejectedAssets, saveAsset, rejectAsset, activeProject]);
 
+    const [phraseIndex, setPhraseIndex] = useState(0);
+    const endRef = useRef<HTMLDivElement | null>(null);
+    const phrases = [
+        "AWAITING INPUT",
+        "STANDING BY",
+        "READY TO DEPLOY",
+        "BRIEF WHEN READY",
+        "BUILD YOUR DIRECTION",
+        "CREATE ATTACK PLAN",
+        "READY TO COMMENCE",
+        "AWAITING DIRECTIVE",
+        "PATIENTLY READY",
+        "PIECE OF CAKE"
+    ];
+
+    useEffect(() => {
+        if (messages.length > 0 || isProcessing) return;
+        const interval = setInterval(() => {
+            setPhraseIndex((prev) => (prev + 1) % phrases.length);
+        }, 3000);
+        return () => clearInterval(interval);
+    }, [messages.length, isProcessing, phrases.length]);
+
+    useEffect(() => {
+        if (!endRef.current) return;
+        endRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    }, [messages.length, isProcessing]);
+
     if (messages.length === 0 && !isProcessing) {
         return (
-            <div className="flex-1 flex items-center justify-center text-zinc-300 font-mono text-xl">
-                <p>READY_FOR_BRIEF</p>
+            <div className="flex-1 flex items-center justify-center relative z-10">
+                <div key={phraseIndex} className="animate-phrase">
+                    <p className="font-doto text-3xl sm:text-4xl md:text-6xl font-black tracking-[-0.05em] text-[#E8825A] uppercase text-center px-6">
+                        {phrases[phraseIndex]}
+                    </p>
+                </div>
             </div>
         );
     }
 
     return (
-        <div className="flex-1 overflow-y-auto p-6 md:p-12 space-y-8 md:space-y-10">
+        <div className="flex-1 overflow-y-auto p-6 md:p-12 space-y-8 md:space-y-10 relative z-10">
             {messages.map((msg: any) => (
                 <div
                     key={msg.id}
-                    className={`flex flex-col w-full max-w-6xl mx-auto rounded-[32px] md:rounded-[40px] p-8 md:p-12 ${msg.role === 'user'
-                        ? 'bg-zinc-50 self-end ml-auto text-zinc-700 max-w-full md:max-w-3xl'
-                        : 'bg-white border border-zinc-100 text-zinc-950 shadow-sm'
+                    className={`flex flex-col w-full max-w-6xl mx-auto rounded-[32px] md:rounded-[40px] p-8 md:p-12 animate-message-in ${msg.role === 'user'
+                        ? 'bg-zinc-50/80 self-end ml-auto text-zinc-700 max-w-full md:max-w-3xl shadow-md border border-zinc-100 backdrop-blur-sm'
+                        : 'bg-white/80 border border-zinc-200 text-zinc-950 shadow-2xl backdrop-blur-sm'
                         }`}
                 >
                     <div className="flex items-center space-x-2 mb-6">
@@ -89,9 +151,8 @@ export function ConversationView() {
                     <div className="whitespace-pre-wrap flex-1">
                         <ReactMarkdown
                             components={{
-                                p: ({ node, children, ...props }: any) => {
-                                    // If this paragraph contains only images, render as a 2-column grid
-                                    const allImages = node?.children?.every((c: any) => c.tagName === 'img' || (c.type === 'text' && !c.value.trim()));
+                                p: ({ children, ...props }: any) => {
+                                    const allImages = props.node?.children?.every((c: any) => c.tagName === 'img' || (c.type === 'text' && !c.value.trim()));
                                     if (allImages) {
                                         return (
                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6 mb-8">
@@ -100,19 +161,18 @@ export function ConversationView() {
                                         );
                                     }
 
-                                    // If it contains at least one image but mixed with text
-                                    const hasImage = node?.children?.some((c: any) => c.tagName === 'img');
+                                    const hasImage = props.node?.children?.some((c: any) => c.tagName === 'img');
                                     if (hasImage) return <div className="mb-6">{children}</div>;
 
-                                    return <p className="mb-6 last:mb-0 text-3xl font-bold leading-relaxed text-zinc-900" {...props}>{children}</p>;
+                                    return <p className="mb-6 last:mb-0 text-2xl font-bold leading-relaxed text-zinc-900" {...props}>{children}</p>;
                                 },
-                                a: ({ node, href, ...props }: any) => {
+                                a: ({ href, ...props }: any) => {
                                     const fullHref = href?.startsWith('/api/') ? `${API_BASE_URL}${href}` : href;
                                     return (
                                         <a href={fullHref} className="text-accent underline underline-offset-8 decoration-2 hover:text-accent-hover transition-all font-black break-all" target={fullHref?.includes('download') ? "_blank" : "_self"} rel="noreferrer" {...props} />
                                     );
                                 },
-                                img: ({ node, src, alt, ...props }: any) => {
+                                img: ({ src, alt }: any) => {
                                     if (!src || !src.trim()) return null;
                                     const fullSrc = normalizeImageSrc(src);
                                     const isKept = savedAssets.includes(fullSrc);
@@ -149,13 +209,13 @@ export function ConversationView() {
                                                 )}
                                             </div>
 
-                                                <img
-                                                    src={fullSrc}
-                                                    alt={alt || "Output"}
-                                                    onLoad={handleLoad}
-                                                    className="w-full h-auto object-cover"
-                                                    loading="lazy"
-                                                />
+                                            <img
+                                                src={fullSrc}
+                                                alt={alt || "Output"}
+                                                onLoad={handleLoad}
+                                                className="w-full h-auto object-cover"
+                                                loading="lazy"
+                                            />
 
                                             <div className="absolute inset-x-0 bottom-0 p-4 bg-gradient-to-t from-black via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                                                 <div className="flex gap-2">
@@ -186,23 +246,45 @@ export function ConversationView() {
                                         </div>
                                     );
                                 },
-                                ul: ({ node, ...props }: any) => <ul className="list-disc pl-10 mb-8 space-y-4 text-zinc-800 text-3xl font-bold" {...props} />,
-                                ol: ({ node, ...props }: any) => <ol className="list-decimal pl-10 mb-8 space-y-4 text-zinc-800 text-3xl font-bold" {...props} />,
-                                li: ({ node, ...props }: any) => <li className="pl-2" {...props} />,
-                                strong: ({ node, ...props }: any) => <strong className="font-black text-black text-4xl" {...props} />
+                                ul: ({ ...props }: any) => <ul className="list-disc pl-10 mb-8 space-y-4 text-zinc-800 text-2xl font-bold" {...props} />,
+                                ol: ({ ...props }: any) => <ol className="list-decimal pl-10 mb-8 space-y-4 text-zinc-800 text-2xl font-bold" {...props} />,
+                                li: ({ ...props }: any) => <li className="pl-2" {...props} />,
+                                em: ({ ...props }: any) => <em className="font-['Instrument_Serif'] italic text-zinc-900" {...props} />,
+                                strong: ({ ...props }: any) => <strong className="font-['Instrument_Serif'] italic font-normal text-zinc-900" {...props} />,
+                                code: ({ inline, children, ...props }: any) => {
+                                    if (inline) {
+                                        return (
+                                            <span className="font-['Instrument_Serif'] italic text-zinc-900" {...props}>
+                                                {children}
+                                            </span>
+                                        );
+                                    }
+                                    return (
+                                        <code className="block font-mono text-sm text-zinc-800 bg-zinc-100/80 border border-zinc-200 rounded-xl p-4" {...props}>
+                                            {children}
+                                        </code>
+                                    );
+                                }
                             }}
                         >
-                            {msg.content}
+                            {formatProjectNames(msg.content)}
                         </ReactMarkdown>
                     </div>
                 </div>
             ))}
 
             {isProcessing && (
-                <div className="max-w-5xl mx-auto">
-                    <SkeletonMessage />
+                <div className="max-w-5xl mx-auto animate-message-in">
+                    <div className="flex items-center justify-center py-8">
+                        <img
+                            src="/load.gif"
+                            alt="Loading"
+                            className="w-[36px] h-[36px] mix-blend-multiply"
+                        />
+                    </div>
                 </div>
             )}
+            <div ref={endRef} />
         </div>
     );
 }
