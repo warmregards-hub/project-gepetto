@@ -22,9 +22,13 @@ class GeneratedAsset(Base):
     __tablename__ = "generated_assets"
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    job_id = Column(String, ForeignKey("generation_jobs.id"), nullable=False)
+    job_id = Column(String, ForeignKey("generation_jobs.id"), nullable=True)
+    conversation_id = Column(String, ForeignKey("conversations.id"), nullable=True)
     asset_type = Column(String, nullable=False) # image, video
     file_path = Column(String, nullable=False) # local storage path
+    drive_id = Column(String, nullable=True)
+    drive_url = Column(String, nullable=True)
+    drive_direct_url = Column(String, nullable=True)
     original_prompt = Column(String)
     
     # Vision QC scores
@@ -37,3 +41,4 @@ class GeneratedAsset(Base):
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
     job = relationship("GenerationJob", back_populates="assets")
+    conversation = relationship("Conversation", back_populates="assets")

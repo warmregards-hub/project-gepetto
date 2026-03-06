@@ -54,7 +54,7 @@ async def list_projects(
                         db.add(client)
                         await db.flush()
 
-                    db.add(Project(name=project_name, folder_path=f"projects/{project_name}", client_id=client.id))
+                    db.add(Project(id=project_name, name=project_name, folder_path=f"projects/{project_name}", client_id=client.id))
 
                 await db.commit()
             except Exception:

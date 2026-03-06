@@ -9,10 +9,13 @@ class Conversation(Base):
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     project_id = Column(String, ForeignKey("projects.id"), nullable=False)
+    name = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime(timezone=True), nullable=True)
 
     project = relationship("Project", back_populates="conversations")
     messages = relationship("Message", back_populates="conversation")
+    assets = relationship("GeneratedAsset", back_populates="conversation")
 
 class Message(Base):
     __tablename__ = "messages"

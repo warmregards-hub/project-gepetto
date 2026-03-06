@@ -1,13 +1,14 @@
 import { useCostStore } from '../../stores/costStore';
 
 export function CostTracker() {
-    const { sessionTotal, monthlyTotal, projectTotal } = useCostStore();
+    const { sessionTotal, dailyTotal, monthlyTotal, projectTotal } = useCostStore();
 
     // Example limits from .env (hardcoded for UI display scale)
     const sessionLimit = 5.00;
     const monthlyLimit = 150.00;
 
     const sessionPercent = Math.min((sessionTotal / sessionLimit) * 100, 100);
+    const dailyPercent = Math.min((dailyTotal / sessionLimit) * 100, 100);
     const monthPercent = Math.min((monthlyTotal / monthlyLimit) * 100, 100);
 
     return (
@@ -23,6 +24,21 @@ export function CostTracker() {
                     <div
                         className="h-full bg-accent transition-all duration-500 shadow-[0_0_8px_rgba(232,130,90,0.4)]"
                         style={{ width: `${sessionPercent}%` }}
+                    />
+                </div>
+            </div>
+
+            <div className="space-y-3">
+                <div className="flex justify-between items-end text-zinc-500">
+                    <span className="uppercase tracking-widest text-[14px] font-black leading-none">Daily</span>
+                    <span className={`text-2xl font-black leading-none ${dailyTotal > sessionLimit * 0.8 ? 'text-accent' : 'text-zinc-950'}`}>
+                        ${dailyTotal.toFixed(2)}
+                    </span>
+                </div>
+                <div className="h-2.5 bg-zinc-100 rounded-full overflow-hidden border border-zinc-200 shadow-inner">
+                    <div
+                        className="h-full bg-orange-400 transition-all duration-500 shadow-[0_0_8px_rgba(251,146,60,0.35)]"
+                        style={{ width: `${dailyPercent}%` }}
                     />
                 </div>
             </div>

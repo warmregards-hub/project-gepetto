@@ -18,6 +18,12 @@ class Settings(BaseSettings):
     elevenlabs_agent_id: str = ""
     elevenlabs_voice_id: str = ""
     n8n_webhook_base_url: str = ""
+
+    # Drive + notifications
+    google_service_account_json: str = ""
+    google_drive_folder_id: str = ""
+    ntfy_base_url: str = "https://ntfy.sh"
+    ntfy_topic: str = "WR-ProjectGepetto"
     
     # Operations
     cost_limit_session: float = 5.0

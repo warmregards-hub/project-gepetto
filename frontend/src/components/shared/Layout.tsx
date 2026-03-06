@@ -7,11 +7,14 @@ import { useProjectStore } from '../../stores/projectStore';
 import { fetchClient } from '../../lib/api';
 import { ChevronLeft } from 'lucide-react';
 import { Meteors } from './Meteors';
+import { SessionList } from '../agent/SessionList';
+import { useSessionStore } from '../../stores/sessionStore';
 
 export function Layout() {
     const location = useLocation();
     const { fetchTotals } = useCostStore();
     const { activeProject } = useProjectStore();
+    const { activeSessionId } = useSessionStore();
     const { isSidebarOpen, setSidebarOpen } = useLayoutStore();
     const [mockEnabled, setMockEnabled] = useState<boolean | null>(null);
     const [isToggling, setIsToggling] = useState(false);
@@ -20,10 +23,11 @@ export function Layout() {
         if (mockEnabled === true) return;
         if (mockEnabled === null) return;
         const projectId = activeProject?.id ?? null;
-        fetchTotals(projectId);
-        const interval = setInterval(() => fetchTotals(projectId), 10000);
+        const sessionId = activeSessionId ?? null;
+        fetchTotals(projectId, sessionId);
+        const interval = setInterval(() => fetchTotals(projectId, sessionId), 10000);
         return () => clearInterval(interval);
-    }, [activeProject, fetchTotals, mockEnabled]);
+    }, [activeProject, activeSessionId, fetchTotals, mockEnabled]);
 
     useEffect(() => {
         const loadMockState = async () => {
@@ -85,22 +89,28 @@ export function Layout() {
                     </button>
                 </div>
 
-                <nav className="flex-1 p-6 space-y-2">
-                    <Link
-                        to="/"
-                        onClick={() => setSidebarOpen(false)}
-                        className={`block px-6 py-4 rounded-2xl transition-all font-black text-xl ${location.pathname === '/' ? 'bg-accent text-white shadow-lg shadow-accent/20 translate-x-1' : 'hover:bg-zinc-50 text-zinc-400'}`}
-                    >
-                        Agent Mode
-                    </Link>
-                    <Link
-                        to="/studio"
-                        onClick={() => setSidebarOpen(false)}
-                        className={`block px-6 py-4 rounded-2xl transition-all font-black text-xl ${location.pathname === '/studio' ? 'bg-accent text-white shadow-lg shadow-accent/20 translate-x-1' : 'hover:bg-zinc-50 text-zinc-400'}`}
-                    >
-                        Studio Mode
-                    </Link>
-                </nav>
+                <div className="flex-1 overflow-hidden flex flex-col">
+                    <nav className="p-6 space-y-2">
+                        <Link
+                            to="/"
+                            onClick={() => setSidebarOpen(false)}
+                            className={`block px-6 py-4 rounded-2xl transition-all font-black text-xl ${location.pathname === '/' ? 'bg-accent text-white shadow-lg shadow-accent/20 translate-x-1' : 'hover:bg-zinc-50 text-zinc-400'}`}
+                        >
+                            Agent Mode
+                        </Link>
+                        <Link
+                            to="/studio"
+                            onClick={() => setSidebarOpen(false)}
+                            className={`block px-6 py-4 rounded-2xl transition-all font-black text-xl ${location.pathname === '/studio' ? 'bg-accent text-white shadow-lg shadow-accent/20 translate-x-1' : 'hover:bg-zinc-50 text-zinc-400'}`}
+                        >
+                            Studio Mode
+                        </Link>
+                    </nav>
+
+                    <div className="px-6 pb-6">
+                        <SessionList />
+                    </div>
+                </div>
 
                 <div className="p-8 border-t border-zinc-100 bg-white space-y-8">
                     <div className="flex items-center justify-between text-sm uppercase tracking-widest text-zinc-500 font-black">

@@ -1,8 +1,10 @@
+import asyncio
 import json
 import uuid
 import re
+from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 import httpx
 
@@ -11,18 +13,26 @@ from app.services.kie_client import KieClient
 from app.services.learning_engine import LearningEngine
 from app.services.n8n_client import N8nClient
 from app.services.storage_service import StorageService
+from app.services.drive_service import DriveService
+from app.services.notification_service import NotificationService
+from app.models.generation import GeneratedAsset
+from app.models.conversation import Conversation
 
 
 class GeminiAgentService:
     MAX_TOOL_CALLS = 20
     MAX_LOOP_STEPS = 12
 
-    def __init__(self, db_session):
+    def __init__(self, db_session, session_id: Optional[str] = None):
         self.kie_client = KieClient()
         self.storage = StorageService()
         self.learning = LearningEngine()
         self.n8n = N8nClient("https://dummy_webhook")
         self.cost_tracker = CostTracker(db_session)
+        self.drive = DriveService()
+        self.notifier = NotificationService()
+        self.db = db_session
+        self.session_id = session_id
 
         self.tools = [
             {
@@ -158,6 +168,74 @@ class GeminiAgentService:
                 },
             },
         ]
+
+    def _build_callback_url(self, base_url: str, project_id: Optional[str]) -> str:
+        url = f"{base_url}/api/kie/callback"
+        params: List[str] = []
+        if project_id:
+            params.append(f"project_id={project_id}")
+        if self.session_id:
+            params.append(f"session_id={self.session_id}")
+        if params:
+            return url + "?" + "&".join(params)
+        return url
+
+    async def _upload_to_drive(self, filename: str, content: bytes) -> Optional[Dict[str, Any]]:
+        if not self.drive.is_enabled():
+            return None
+        return await asyncio.to_thread(self.drive.upload_bytes, filename, content)
+
+    def _remove_local_file(self, path: str) -> None:
+        try:
+            Path(path).unlink(missing_ok=True)
+        except Exception:
+            return
+
+    async def _touch_session(self) -> None:
+        if not self.session_id or not self.db:
+            return
+        convo = await self.db.get(Conversation, self.session_id)
+        if not convo:
+            return
+        convo.updated_at = datetime.now(timezone.utc)
+        await self.db.commit()
+
+    async def _record_asset(
+        self,
+        asset_type: str,
+        file_path: str,
+        drive_info: Optional[Dict[str, Any]],
+        prompt: str,
+    ) -> None:
+        if not self.db:
+            return
+        asset = GeneratedAsset(
+            job_id=None,
+            conversation_id=self.session_id,
+            asset_type=asset_type,
+            file_path=file_path,
+            drive_id=drive_info.get("id") if drive_info else None,
+            drive_url=drive_info.get("webViewLink") if drive_info else None,
+            drive_direct_url=drive_info.get("directUrl") if drive_info else None,
+            original_prompt=prompt,
+        )
+        self.db.add(asset)
+        await self.db.commit()
+        await self._touch_session()
+
+    async def _notify_completion(self, asset_count: int, link: Optional[str]) -> None:
+        if not link:
+            return
+        title = "Geppetto Complete"
+        session_name = None
+        if self.session_id and self.db:
+            convo = await self.db.get(Conversation, self.session_id)
+            if convo:
+                session_name = convo.name or None
+        message = f"Generated {asset_count} asset(s)."
+        if session_name:
+            message = f"{session_name} complete. {message}"
+        await self.notifier.notify(title, message, link)
 
     async def _broadcast(self, event: Dict[str, Any]) -> None:
         try:
@@ -448,8 +526,6 @@ class GeminiAgentService:
             from app.config import settings
 
             callback_url = None
-            if settings.environment != "development":
-                callback_url = f"{settings.backend_url}/api/kie/callback"
 
             if name == "search_available_models":
                 query = args.get("query")
@@ -472,6 +548,8 @@ class GeminiAgentService:
                     elif ratio == "1:1":
                         size = "1024x1024"
                 tool_project = args.get("project_id") or project_id or "default"
+                if settings.environment != "development":
+                    callback_url = self._build_callback_url(settings.backend_url, tool_project)
                 if not prompts:
                     prompts = [""]
 
@@ -518,6 +596,7 @@ class GeminiAgentService:
 
                 pending_tasks: List[str] = []
                 download_links: List[str] = []
+                drive_links: List[str] = []
                 urls = generation.get("urls", [])
                 task_ids = generation.get("task_ids") or []
                 if isinstance(task_ids, str):
@@ -539,8 +618,15 @@ class GeminiAgentService:
                         else:
                             img_bytes = await self._download_asset(url)
                         saved_path = await self.storage.save_file(img_bytes, tool_project, "generated", filename)
+                        drive_info = await self._upload_to_drive(filename, img_bytes)
+                        if drive_info:
+                            self._remove_local_file(saved_path)
                         relative_name = Path(saved_path).name
-                        download_links.append(f"/api/storage/download/{tool_project}/generated/{relative_name}")
+                        local_link = f"/api/storage/download/{tool_project}/generated/{relative_name}"
+                        drive_link = drive_info.get("directUrl") if drive_info else None
+                        download_links.append(drive_link or local_link)
+                        if drive_info and drive_info.get("webViewLink"):
+                            drive_links.append(drive_info["webViewLink"])
                         slot_id = f"{batch_id}:{idx}"
                         await self.learning.log_generation(
                             tool_project,
@@ -552,6 +638,15 @@ class GeminiAgentService:
                             idx,
                             slot_id,
                         )
+                        await self._record_asset(
+                            asset_type="image",
+                            file_path=saved_path,
+                            drive_info=drive_info,
+                            prompt=prompts[min(idx, len(prompts) - 1)] if prompts else "",
+                        )
+
+                    if download_links:
+                        await self._notify_completion(len(download_links), drive_links[0] if drive_links else download_links[0])
 
                 await self.cost_tracker.log_cost(
                     0.0,
@@ -559,6 +654,7 @@ class GeminiAgentService:
                     generation.get("model_used", model),
                     tool_project,
                     f"Image generation ({len(prompts)} assets)",
+                    session_id=self.session_id,
                 )
 
                 return {
@@ -577,6 +673,8 @@ class GeminiAgentService:
                 prompts = args.get("prompts") or []
                 model = args.get("model")
                 tool_project = args.get("project_id") or project_id or "default"
+                if settings.environment != "development":
+                    callback_url = self._build_callback_url(settings.backend_url, tool_project)
                 if not prompts:
                     prompts = [""]
 
@@ -588,8 +686,10 @@ class GeminiAgentService:
                     }
 
                 all_urls: List[str] = []
+                drive_links: List[str] = []
                 pending_tasks: List[str] = []
                 model_used = model
+                batch_id = uuid.uuid4().hex
                 for prompt in prompts:
                     generation = await self.kie_client.generate_video(
                         prompt=prompt,
@@ -604,9 +704,34 @@ class GeminiAgentService:
                             "llm_payload": {"status": "error", "message": generation.get("message")},
                         }
 
-                    all_urls.extend(generation.get("urls", []))
+                    urls = generation.get("urls", [])
                     if generation.get("pending_callback") and generation.get("task_id"):
                         pending_tasks.append(f"Webhook job pending (Task ID: {generation['task_id']})")
+                    else:
+                        for idx, url in enumerate(urls):
+                            if not isinstance(url, str):
+                                continue
+                            filename = f"video_{batch_id}_{idx}.mp4"
+                            if url.startswith("mock_video_"):
+                                video_bytes = b""
+                            else:
+                                video_bytes = await self._download_asset(url)
+                            saved_path = await self.storage.save_file(video_bytes, tool_project, "generated", filename)
+                            drive_info = await self._upload_to_drive(filename, video_bytes)
+                            if drive_info:
+                                self._remove_local_file(saved_path)
+                            relative_name = Path(saved_path).name
+                            local_link = f"/api/storage/download/{tool_project}/generated/{relative_name}"
+                            drive_link = drive_info.get("webViewLink") if drive_info else None
+                            all_urls.append(drive_link or local_link)
+                            if drive_info and drive_info.get("webViewLink"):
+                                drive_links.append(drive_info["webViewLink"])
+                            await self._record_asset(
+                                asset_type="video",
+                                file_path=saved_path,
+                                drive_info=drive_info,
+                                prompt=prompt,
+                            )
                     model_used = generation.get("model_used", model_used)
 
                 await self.cost_tracker.log_cost(
@@ -615,7 +740,11 @@ class GeminiAgentService:
                     model_used,
                     tool_project,
                     f"Video generation ({len(prompts)} assets)",
+                    session_id=self.session_id,
                 )
+
+                if all_urls:
+                    await self._notify_completion(len(all_urls), drive_links[0] if drive_links else all_urls[0])
 
                 return {
                     "ok": True,
@@ -668,7 +797,7 @@ class GeminiAgentService:
                 model = args.get("model") or "unknown"
                 pid = args.get("project_id") or project_id
                 description = args.get("description") or "manual log"
-                logged = await self.cost_tracker.log_cost(amount, service, model, pid, description)
+                logged = await self.cost_tracker.log_cost(amount, service, model, pid, description, session_id=self.session_id)
                 return {"ok": True, "llm_payload": {"status": "ok", "logged_amount": logged}}
 
             return {
@@ -826,6 +955,7 @@ class GeminiAgentService:
                         "gemini-2.5-flash",
                         project_id,
                         "Agent chat completion",
+                        session_id=self.session_id,
                     )
             except Exception:
                 pass

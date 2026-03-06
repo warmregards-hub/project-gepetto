@@ -26,7 +26,7 @@ User speaks or types a brief. The agent autonomously:
 4. User reviews: KEEP or REJECT each image
 5. Rejected slots are regenerated with adjusted prompts based on keep/reject patterns
 6. Loops until all slots are filled with kept assets
-7. Saves kept assets to local storage with download links
+7. Uploads assets to Google Drive, stores links against the session, and returns links to the user
 8. Triggers existing n8n workflows for video/audio pipelines
 9. Reports results with cost summary
 10. Learns preferences for next time (decisions logged to qc-feedback.jsonl, distilled into learned-patterns.json)
@@ -37,6 +37,15 @@ User speaks or types a brief. The agent autonomously:
 
 **Agent Mode (primary):** Chat interface. Voice or text input. Full autonomous execution.
 **Studio Mode (secondary):** Manual generation panel. Pick model, write prompt, generate one thing.
+
+### Data hierarchy
+
+Client → Project → Session (persistent chat stored in PostgreSQL)
+
+Example:
+WTF → Betway F1 Race Videos → Session - 6 Mar
+
+UI: The top dropdown selects the active project; sessions list is scoped to that project.
 
 ---
 
@@ -68,13 +77,16 @@ User speaks or types a brief. The agent autonomously:
 - Docker + Docker Compose
 - Nginx reverse proxy (production)
 - Let's Encrypt SSL (production)
+- Local is development only; VPS is production; behavior controlled via env vars
 
 ### External APIs
 | Service | Purpose | Format |
 |---|---|---|
 | Kie.ai | Gemini 2.5 Flash brain + image/video gen (webhooks) | OpenAI-compatible |
 | ElevenLabs | Voice I/O | WebRTC + REST |
-| Local Storage | File download via app UI | Local filesystem |
+| Google Drive | Primary asset storage (service account) | REST |
+| ntfy | Mobile completion notifications | HTTP |
+| Local Storage | Temporary working volume | Local filesystem |
 | n8n Cloud | Trigger existing workflows | Webhooks (POST) |
 | Webhook Callback | Receive generation results | POST `/api/kie/callback` |
 
@@ -202,6 +214,7 @@ warm-regards-creative-hub/
 - Real-time status via WebSocket for all jobs
 - Toast notifications for completions
 - Cost tracker ALWAYS visible
+- Sessions are persistent per project; avoid saving empty sessions
 
 ### Agent behaviour rules
 - NEVER ask for confirmation mid-workflow — execute fully then report
@@ -263,7 +276,7 @@ Central orchestrator. Receives user messages, autonomously executes multi-step c
 
 ~~**run_vision_qc**~~ — REMOVED from active tools for now. Kept disabled in codebase. When `vision_qc_enabled` is true (after 100+ feedbacks), it pre-rejects obvious failures.
 
-**save_to_storage** — params: files (array of URLs/paths), project_id, subfolder string. Naming: /storage/[client]/[date]_[campaign]/[type]/
+**save_to_storage** — params: files (array of URLs/paths), project_id, subfolder string. Local storage is temporary; final assets are uploaded to Drive and linked to the session.
 
 **trigger_n8n_workflow** — params: workflow_name (enum: ugc-batch, video-render, script-process, voice-generate), payload object.
 
@@ -303,10 +316,10 @@ Agent executes (zero user interaction):
 5. generate_images(8 retry prompts with tweaks) — regenerates failures
 6. run_vision_qc(8 new) — 7/8 pass, 1 skipped
 7. Selects best variant per concept (50 finals from ~108 generated)
-8. save_to_storage(50 files, "drew-5trips", "2026-03-04_Gym-UGC")
+8. Uploads assets to Drive, stores links against the session
 9. log_cost($3.24 images + $0.85 QC)
 10. update_project_preferences(avg_qc=8.2, top_prompts, retry_rate=0.08)
-11. Reports: 50 frames, 92% first-pass, $4.09, download link, 6m42s
+11. Reports: 50 frames, 92% first-pass, $4.09, Drive links, 6m42s
 
 ---
 
@@ -416,6 +429,9 @@ POST /api/n8n/callback with job_id, status (completed/failed/partial), outputs a
 
 Voice mode: ElevenLabs React SDK, useConversation() hook, push-to-talk (saves credits), Lora voice clone for output, user real voice for input via STT.
 
+Agent transfer: Lora transfers calls to the Geppetto ElevenLabs agent (separate agent ID, same backend).
+Lora can also trigger Geppetto via webhook tool with a brief payload.
+
 Text mode: Standard input + paste support for long scripts + drag-drop .txt/.md.
 
 Hybrid: Voice instructions + pasted scripts in same conversation.
@@ -440,18 +456,19 @@ CostEntry: id, timestamp, project_id, service, model, amount_usd, description, j
 
 ## 11 · Local file storage
 
-/storage/[client]/[date]_[campaign-name]/images/ + /videos/ + metadata.json
-All files served via the app with download buttons. Downloadable individually or as ZIP.
+Local storage is a temporary working volume only.
+Pipeline: Generate → temporary Docker volume → upload to Drive → store link against session → delete local file.
+Drive uses a Google service account JSON key (no OAuth).
+All user-facing links are Drive links.
 
 **Storage mount:** `./storage` on host → `/storage` in container (bind mount, not Docker volume).
-Drop any file into `projectgepetto/storage/` and it's immediately accessible inside the container.
 `car.png` in the root of `./storage` is used as the mock image placeholder.
 
 ---
 
 ## 12 · Environment variables
 
-KIE_API_KEY, KIE_BASE_URL (https://api.kie.ai/v1), ELEVENLABS_API_KEY, ELEVENLABS_AGENT_ID, ELEVENLABS_VOICE_ID, N8N_WEBHOOK_BASE_URL, DATABASE_URL (postgresql+asyncpg://hub:password@db:5432/creative_hub), POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB, ENVIRONMENT, SECRET_KEY, FRONTEND_URL, BACKEND_URL, COST_LIMIT_SESSION (5.00), COST_LIMIT_MONTHLY (150.00), ADMIN_USERNAME, ADMIN_PASSWORD_HASH, STORAGE_PATH (/storage — Docker volume mounted for persistence), MOCK_GENERATION (true/false — when true, image and video generation returns placeholder files instead of calling Kie.ai, so you can test the full workflow without spending money. Agent brain chat still works normally. Set to false when ready to generate real assets).
+KIE_API_KEY, KIE_BASE_URL (https://api.kie.ai/v1), ELEVENLABS_API_KEY, ELEVENLABS_AGENT_ID, ELEVENLABS_VOICE_ID, N8N_WEBHOOK_BASE_URL, GOOGLE_SERVICE_ACCOUNT_JSON, GOOGLE_DRIVE_FOLDER_ID, NTFY_BASE_URL, NTFY_TOPIC, DATABASE_URL (postgresql+asyncpg://hub:password@db:5432/creative_hub), POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB, ENVIRONMENT, SECRET_KEY, FRONTEND_URL, BACKEND_URL, COST_LIMIT_SESSION (5.00), COST_LIMIT_MONTHLY (150.00), ADMIN_USERNAME, ADMIN_PASSWORD_HASH, STORAGE_PATH (/storage — Docker volume mounted for persistence), MOCK_GENERATION (true/false — when true, image and video generation returns placeholder files instead of calling Kie.ai, so you can test the full workflow without spending money. Agent brain chat still works normally. Set to false when ready to generate real assets).
 
 ---
 
@@ -476,7 +493,7 @@ KIE_API_KEY, KIE_BASE_URL (https://api.kie.ai/v1), ELEVENLABS_API_KEY, ELEVENLAB
 - Kie.ai video gen with retry + fallback
 - Vision QC (Claude vision scoring)
 - Auto-regeneration loop
-- Local storage service (folders, upload, links)
+- Local storage service (temporary volume) + Drive upload pipeline
 - Learning engine (read/write preferences)
 - Full autonomous workflow (brief to delivery)
 - WebSocket progress streaming
@@ -487,6 +504,16 @@ KIE_API_KEY, KIE_BASE_URL (https://api.kie.ai/v1), ELEVENLABS_API_KEY, ELEVENLAB
 - ElevenLabs voice (React SDK)
 - Voice input, transcription, agent processing
 - Agent response, Lora TTS, audio output
+- Correct data hierarchy: Client → Project → Session
+- Persistent sessions (PostgreSQL schema, message + asset history per session)
+- Sessions sidebar UI (scoped to active project, scrollable, new session button)
+- Google Drive service account integration (no OAuth)
+- Lora webhook trigger endpoint
+- Lora completion callback
+- ElevenLabs voice agent for Geppetto (separate agent ID, same backend)
+- Agent transfer configuration on Lora side
+- Drive link stored against session on asset completion
+- Mobile notification on session completion
 
 ### Phase 4 — Studio Mode (Week 3-4)
 - Manual image gen panel
@@ -516,9 +543,9 @@ KIE_API_KEY, KIE_BASE_URL (https://api.kie.ai/v1), ELEVENLABS_API_KEY, ELEVENLAB
 ## 15 · Constraints
 
 - Never exceed cost limits without explicit override
-- Never delete from storage (only add)
+- Never delete from Drive (only add)
 - Never modify n8n workflows (only trigger via webhooks)
 - Log everything (every API call, cost, QC result)
 - Graceful degradation when Kie.ai is down
 - Max 10 concurrent Kie.ai calls, 100/minute
-- All content stored locally + Drive (dual backup)
+- All content stored in Drive; local storage is temporary only

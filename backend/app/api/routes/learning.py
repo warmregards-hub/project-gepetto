@@ -64,12 +64,14 @@ async def log_qc_decision(
 @router.get("/costs/totals")
 async def get_cost_totals(
     project_id: Optional[str] = None,
+    session_id: Optional[str] = None,
     db: AsyncSession = Depends(get_db),
     current_user: str = Depends(get_current_user)
 ):
     tracker = CostTracker(db)
-    session_total, monthly_total, project_total = await tracker.get_totals(project_id)
+    daily_total, monthly_total, project_total, session_total = await tracker.get_totals(project_id, session_id)
     return {
+        "daily_total": daily_total,
         "session_total": session_total,
         "monthly_total": monthly_total,
         "project_total": project_total,

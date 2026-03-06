@@ -7,11 +7,13 @@ import { StatusMonitor } from '../components/agent/StatusMonitor';
 import { useAgent } from '../hooks/useAgent';
 import { useProjectStore } from '../stores/projectStore';
 import { useLayoutStore } from '../stores/layoutStore';
+import { useSessionStore } from '../stores/sessionStore';
 import { Menu } from 'lucide-react';
 
 export function AgentPage() {
     const { sendMessage, error } = useAgent();
     const { activeProject, setProjects, setActiveProject } = useProjectStore();
+    const { startNewSession } = useSessionStore();
     const { setSidebarOpen } = useLayoutStore();
 
     // Mock initial data load for phase 1 testing
@@ -25,6 +27,11 @@ export function AgentPage() {
             setActiveProject(mockProjects[0]);
         }
     }, [setProjects, activeProject]);
+
+    useEffect(() => {
+        if (!activeProject) return;
+        startNewSession();
+    }, [activeProject?.id, startNewSession]);
 
     const handleSend = (msg: string) => {
         sendMessage(msg);

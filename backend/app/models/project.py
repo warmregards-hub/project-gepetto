@@ -33,6 +33,7 @@ class CostEntry(Base):
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     project_id = Column(String, ForeignKey("projects.id"), nullable=False)
+    session_id = Column(String, ForeignKey("conversations.id"), nullable=True)
     service = Column(String, nullable=False)
     model = Column(String, nullable=False)
     amount_usd = Column(Float, nullable=False)

@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { useAgentStore } from '../stores/agentStore';
 import { useProjectStore } from '../stores/projectStore';
+import { useSessionStore } from '../stores/sessionStore';
 import { fetchClient } from '../lib/api';
 
 export function useAgent() {
     const { messages, addMessage, setProcessing } = useAgentStore();
     const { activeProject } = useProjectStore();
+    const { activeSessionId, setActiveSessionId, setPendingSession, loadSessions } = useSessionStore();
     const [error, setError] = useState<string | null>(null);
 
     const sendMessage = async (content: string) => {
@@ -35,9 +37,16 @@ export function useAgent() {
                 body: JSON.stringify({
                     message: content,
                     project_id: activeProject.id,
-                    conversation_history: history
+                    conversation_history: history,
+                    session_id: activeSessionId || undefined
                 })
             });
+
+            if (response.session_id && response.session_id !== activeSessionId) {
+                setActiveSessionId(response.session_id);
+                setPendingSession(false);
+                loadSessions(activeProject.id);
+            }
 
             addMessage({
                 id: crypto.randomUUID(),
