@@ -263,6 +263,22 @@ class GeminiAgentService:
 
         return prompts, updated_size
 
+    def _apply_learned_patterns(self, prompts: List[str], patterns: Dict[str, Any]) -> List[str]:
+        additions = patterns.get("recommended_prompt_additions", []) if isinstance(patterns, dict) else []
+        exclusions = patterns.get("recommended_prompt_exclusions", []) if isinstance(patterns, dict) else []
+
+        updated_prompts: List[str] = []
+        for prompt in prompts:
+            updated = prompt
+            for phrase in additions:
+                if isinstance(phrase, str) and phrase.strip() and phrase.lower() not in updated.lower():
+                    updated = f"{updated.rstrip()} {phrase.strip()}"
+            for phrase in exclusions:
+                if isinstance(phrase, str) and phrase.strip():
+                    updated = re.sub(re.escape(phrase), "", updated, flags=re.IGNORECASE)
+            updated_prompts.append(" ".join(updated.split()))
+        return updated_prompts
+
     def _detect_scope(self, message: str, active_project: str) -> tuple[str, str | None]:
         lowered = message.lower()
         project_map = {
@@ -407,6 +423,7 @@ class GeminiAgentService:
                 prefs_data = await self.learning.get_preferences(tool_project)
                 rules = self._extract_rules(prefs_data.get("preferences_md", ""))
                 prompts, size = self._apply_preference_rules(prompts, size, rules)
+                prompts = self._apply_learned_patterns(prompts, prefs_data.get("learned_patterns", {}))
 
                 generation = await self.kie_client.generate_images(
                     prompts=prompts,
@@ -452,6 +469,17 @@ class GeminiAgentService:
                         saved_path = await self.storage.save_file(img_bytes, tool_project, "generated", filename)
                         relative_name = Path(saved_path).name
                         download_links.append(f"/api/storage/download/{tool_project}/generated/{relative_name}")
+                        slot_id = f"{batch_id}:{idx}"
+                        await self.learning.log_generation(
+                            tool_project,
+                            download_links[-1],
+                            prompts[min(idx, len(prompts) - 1)] if prompts else "",
+                            generation.get("model_used", model),
+                            size,
+                            batch_id,
+                            idx,
+                            slot_id,
+                        )
 
                 await self.cost_tracker.log_cost(
                     0.0,
@@ -680,7 +708,7 @@ class GeminiAgentService:
             "You are the agent. Decide what to do next.\n"
             "When the user requests generation, you MUST either call a tool or ask a clarification question.\n"
             "If the user already specified a model earlier in the conversation, use that exact model without asking again.\n"
-            "If the user states a lasting preference or rule (e.g. 'for this project', 'always', 'only', 'never'), you MUST call update_project_preferences to save it and then confirm it was saved.\n"
+            "If the user states a lasting preference or rule (e.g. 'for this project', 'always', 'only', 'never'), you MUST call update_project_preferences to save it silently.\n"
             "\n"
             "**Generating Images / Videos**\n"
             "Do NOT assume or hardcode what models exist or what models are best. The available models are dynamic.\n"
@@ -891,4 +919,102 @@ class GeminiAgentService:
             "content": "I stopped after several reasoning steps to avoid a runaway loop. Here's what I completed so far:\n" + summary,
             "tool_calls_executed": tool_calls_executed,
             "cost_usd": 0.0,
+        }
+
+    async def regenerate_rejected_asset(self, project_id: str, asset_url: str) -> Dict[str, Any]:
+        record = await self.learning.find_generation_by_asset(project_id, asset_url)
+        if not record:
+            return {"ok": False, "message": "No generation record found"}
+
+        prompt = record.get("prompt") or ""
+        model = record.get("model") or ""
+        size = record.get("size") or "1024x1024"
+        slot_id = record.get("slot_id")
+
+        if slot_id:
+            attempts = await self.learning.count_slot_attempts(project_id, slot_id)
+            if attempts >= 3:
+                return {"ok": False, "message": "Max regeneration attempts reached"}
+
+        if not model:
+            return {"ok": False, "message": "No model stored for regeneration"}
+
+        patterns = await self.learning.get_learned_patterns(project_id)
+        prompt = self.learning.tweak_prompt(prompt, patterns)
+
+        prefs_data = await self.learning.get_preferences(project_id)
+        rules = self._extract_rules(prefs_data.get("preferences_md", ""))
+        prompts, size = self._apply_preference_rules([prompt], size, rules)
+        prompts = self._apply_learned_patterns(prompts, patterns)
+
+        from app.config import settings
+        callback_url = None
+        if settings.environment != "development":
+            callback_url = f"{settings.backend_url}/api/kie/callback"
+
+        generation = await self.kie_client.generate_images(
+            prompts=prompts,
+            model=model,
+            size=size,
+            callback_url=callback_url,
+            project_id=project_id,
+        )
+
+        if not generation.get("ok"):
+            return {
+                "ok": False,
+                "message": generation.get("message") or "Regeneration failed",
+                "errors": generation.get("errors"),
+            }
+
+        download_links: List[str] = []
+        pending_tasks: List[str] = []
+        urls = generation.get("urls", [])
+        task_ids = generation.get("task_ids") or []
+        if isinstance(task_ids, str):
+            task_ids = [task_ids]
+        if generation.get("pending_callback") and task_ids:
+            for task_id in task_ids:
+                pending_tasks.append(f"Webhook job pending (Task ID: {task_id})")
+        else:
+            batch_id = uuid.uuid4().hex
+            for idx, url in enumerate(urls):
+                if not isinstance(url, str):
+                    continue
+                filename = f"regen_{batch_id}_{idx}.jpg"
+                if url.startswith("mock_image_"):
+                    car_path = Path("/storage/car.png")
+                    if not car_path.exists():
+                        continue
+                    img_bytes = car_path.read_bytes()
+                else:
+                    img_bytes = await self._download_asset(url)
+                saved_path = await self.storage.save_file(img_bytes, project_id, "generated", filename)
+                relative_name = Path(saved_path).name
+                download_links.append(f"/api/storage/download/{project_id}/generated/{relative_name}")
+                await self.learning.log_generation(
+                    project_id,
+                    download_links[-1],
+                    prompts[min(idx, len(prompts) - 1)] if prompts else "",
+                    generation.get("model_used", model),
+                    size,
+                    batch_id,
+                    idx,
+                    slot_id,
+                    asset_url,
+                )
+
+        await self.cost_tracker.log_cost(
+            0.0,
+            "kie-image",
+            generation.get("model_used", model),
+            project_id,
+            "Image regeneration (1 asset)",
+        )
+
+        return {
+            "ok": True,
+            "download_links": download_links,
+            "pending_tasks": pending_tasks,
+            "message": self._render_links_message(download_links, pending_tasks),
         }

@@ -36,8 +36,29 @@ async def log_qc_decision(
     current_user: str = Depends(get_current_user)
 ):
     le = LearningEngine()
-    await le.log_qc_decision(request.project_id, request.asset_url, request.decision, request.prompt or "")
-    return {"status": "success"}
+    prompt = request.prompt or ""
+    model = None
+    if not prompt:
+        record = await le.find_generation_by_asset(request.project_id, request.asset_url)
+        if record:
+            prompt = record.get("prompt") or ""
+            model = record.get("model")
+    await le.log_qc_decision(request.project_id, request.asset_url, request.decision, prompt, model)
+    regeneration = None
+    if request.decision == "reject":
+        try:
+            from app.services.gemini_agent import GeminiAgentService
+            agent = GeminiAgentService(db)
+            regen_result = await agent.regenerate_rejected_asset(request.project_id, request.asset_url)
+            if regen_result.get("ok"):
+                regeneration = {
+                    "message": regen_result.get("message"),
+                    "download_links": regen_result.get("download_links", []),
+                    "pending_tasks": regen_result.get("pending_tasks", []),
+                }
+        except Exception:
+            regeneration = None
+    return {"status": "success", "regeneration": regeneration}
 
 
 @router.get("/costs/totals")

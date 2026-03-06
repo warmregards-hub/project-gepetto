@@ -1,7 +1,9 @@
 from fastapi import APIRouter, Request, BackgroundTasks
 import httpx
+import json
 from pathlib import Path
 from app.services.storage_service import StorageService
+from app.services.learning_engine import LearningEngine
 import time
 
 router = APIRouter()
@@ -48,8 +50,37 @@ async def process_kie_callback(data: dict):
                     print(f"Failed to download {url}: {e}")
 
     print(f"[Project Gepetto] Webhook saved files for task {task_id}: {saved_links}")
-    # Push update to frontend via WebSocket (Implementation pending WebSocket integration details)
-    # from app.api.routes.agent import agent_connections (or similar)
+    try:
+        le = LearningEngine()
+        param = data.get("param")
+        prompt = ""
+        model = data.get("model") or ""
+        aspect_ratio = ""
+        if isinstance(param, str):
+            try:
+                parsed = json.loads(param)
+                model = parsed.get("model") or model
+                input_data = parsed.get("input") if isinstance(parsed.get("input"), dict) else {}
+                prompt = input_data.get("prompt") or prompt
+                aspect_ratio = input_data.get("aspect_ratio") or ""
+            except Exception:
+                pass
+        size_map = {"9:16": "1024x1792", "16:9": "1792x1024", "1:1": "1024x1024", "4:3": "1024x768", "3:4": "768x1024"}
+        size = size_map.get(aspect_ratio, "1024x1024")
+        batch_id = str(task_id or ts)
+        for idx, link in enumerate(saved_links):
+            await le.log_generation(project_id, link, prompt, model, size, batch_id, idx)
+    except Exception:
+        pass
+
+    try:
+        from app.api.routes.agent import manager
+        if saved_links:
+            body = "\n".join([f"![variant_{idx}]({link})" for idx, link in enumerate(saved_links)])
+            content = f"Generated {len(saved_links)}.\n\n{body}"
+            await manager.broadcast({"type": "asset_update", "data": {"message": content}})
+    except Exception:
+        pass
 
 @router.post("/callback")
 async def kie_webhook_callback(request: Request, background_tasks: BackgroundTasks):

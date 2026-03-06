@@ -1,4 +1,5 @@
 import json
+import re
 from pathlib import Path
 
 class LearningEngine:
@@ -121,14 +122,21 @@ class LearningEngine:
         print(f"[Project Gepetto Learning] Distilled patterns for {project_id}")
         return True
 
-    async def log_qc_decision(self, project_id: str, asset_url: str, decision: str, prompt: str = ""):
+    async def log_qc_decision(
+        self,
+        project_id: str,
+        asset_url: str,
+        decision: str,
+        prompt: str = "",
+        model: str | None = None,
+    ):
         feedback_path = self.projects_dir / project_id / "qc-feedback.jsonl"
         feedback_path.parent.mkdir(parents=True, exist_ok=True)
         
         import time
         entry = {
             "asset_url": asset_url,
-            "model": "unknown", # Will need front-end to supply model if possible
+            "model": model or "unknown", # Will need front-end to supply model if possible
             "decision": decision, # "keep" or "reject"
             "prompt": prompt,
             "timestamp": int(time.time())
@@ -143,6 +151,93 @@ class LearningEngine:
         # We trigger it now as an example hook
         await self.analyze_feedback(project_id)
         return True
+
+    async def log_generation(
+        self,
+        project_id: str,
+        asset_url: str,
+        prompt: str,
+        model: str,
+        size: str,
+        batch_id: str,
+        index: int,
+        slot_id: str | None = None,
+        source_asset_url: str | None = None,
+    ):
+        log_path = self.projects_dir / project_id / "generation-log.jsonl"
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+        import time
+        entry = {
+            "asset_url": asset_url,
+            "prompt": prompt,
+            "model": model,
+            "size": size,
+            "batch_id": batch_id,
+            "index": index,
+            "slot_id": slot_id or f"{batch_id}:{index}",
+            "source_asset_url": source_asset_url,
+            "timestamp": int(time.time()),
+        }
+        with open(log_path, "a") as f:
+            f.write(json.dumps(entry) + "\n")
+        return True
+
+    async def find_generation_by_asset(self, project_id: str, asset_url: str) -> dict | None:
+        log_path = self.projects_dir / project_id / "generation-log.jsonl"
+        if not log_path.exists():
+            return None
+        last_match = None
+        with open(log_path, "r") as f:
+            for line in f:
+                try:
+                    entry = json.loads(line)
+                except Exception:
+                    continue
+                if entry.get("asset_url") == asset_url:
+                    last_match = entry
+        return last_match
+
+    async def count_slot_attempts(self, project_id: str, slot_id: str) -> int:
+        log_path = self.projects_dir / project_id / "generation-log.jsonl"
+        if not log_path.exists():
+            return 0
+        count = 0
+        with open(log_path, "r") as f:
+            for line in f:
+                try:
+                    entry = json.loads(line)
+                except Exception:
+                    continue
+                if entry.get("slot_id") == slot_id:
+                    count += 1
+        return count
+
+    async def get_learned_patterns(self, project_id: str) -> dict:
+        patterns_path = self.projects_dir / project_id / "learned-patterns.json"
+        if not patterns_path.exists():
+            return {}
+        try:
+            with open(patterns_path, "r") as f:
+                return json.load(f)
+        except Exception:
+            return {}
+
+    def tweak_prompt(self, prompt: str, patterns: dict) -> str:
+        updated = prompt
+        additions = patterns.get("recommended_prompt_additions", []) if isinstance(patterns, dict) else []
+        exclusions = patterns.get("recommended_prompt_exclusions", []) if isinstance(patterns, dict) else []
+
+        if additions:
+            for phrase in additions:
+                if isinstance(phrase, str) and phrase.strip() and phrase.lower() not in updated.lower():
+                    updated = f"{updated.rstrip()} {phrase.strip()}"
+
+        if exclusions:
+            for phrase in exclusions:
+                if isinstance(phrase, str) and phrase.strip():
+                    updated = re.sub(re.escape(phrase), "", updated, flags=re.IGNORECASE)
+
+        return " ".join(updated.split())
 
     async def update_preferences(self, project_id: str, updates: dict):
         pref_path = self.projects_dir / project_id / "preferences.md"
