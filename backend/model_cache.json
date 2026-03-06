@@ -1,0 +1,14 @@
+{
+  "models": [
+    {"id": "gpt-image-1", "type": "image", "provider": "kie.ai"},
+    {"id": "nano-banana-pro", "type": "image", "provider": "kie.ai"},
+    {"id": "midjourney", "type": "image", "provider": "kie.ai"},
+    {"id": "flux-kontext", "type": "image", "provider": "kie.ai"},
+    {"id": "veo-3.1-fast", "type": "video", "provider": "kie.ai"},
+    {"id": "veo-3.1", "type": "video", "provider": "kie.ai"},
+    {"id": "kling", "type": "video", "provider": "kie.ai"},
+    {"id": "sora2", "type": "video", "provider": "kie.ai"},
+    {"id": "runway-aleph", "type": "video", "provider": "kie.ai"},
+    {"id": "claude-sonnet-4-5", "type": "chat", "provider": "kie.ai"}
+  ]
+}

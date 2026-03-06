@@ -1,0 +1,1084 @@
+{
+  "version": 1,
+  "updated_at": "2026-03-06T04:19:25.542893+00:00",
+  "models": {
+    "claude-sonnet-4-5": {
+      "chat": {
+        "endpoints": {
+          "https://api.kie.ai/claude-sonnet-4-5/v1/chat/completions": {
+            "success_count": 126,
+            "failure_count": 15,
+            "consecutive_failures": 15,
+            "last_success": "2026-03-05T14:35:46.211705+00:00",
+            "last_failure": "2026-03-06T01:03:17.815632+00:00",
+            "last_status_code": 500,
+            "last_error_type": "api_error",
+            "last_error_message": "Server exception, please try again later",
+            "last_params": {
+              "model": "claude-sonnet-4-5",
+              "messages": [
+                {
+                  "role": "user",
+                  "content": "Hello"
+                }
+              ]
+            }
+          },
+          "https://api.kie.ai/v1/chat/completions": {
+            "success_count": 0,
+            "failure_count": 5,
+            "consecutive_failures": 5,
+            "last_success": null,
+            "last_failure": "2026-03-06T01:03:18.141575+00:00",
+            "last_status_code": 404,
+            "last_error_type": "http_status",
+            "last_error_message": "{\"timestamp\":1772758997813,\"status\":404,\"error\":\"Not Found\",\"message\":\"No message available\",\"path\":\"/v1/chat/completions\"}",
+            "last_params": {}
+          }
+        },
+        "status": "down",
+        "last_success_url": "https://api.kie.ai/claude-sonnet-4-5/v1/chat/completions",
+        "last_failure_url": "https://api.kie.ai/v1/chat/completions"
+      }
+    },
+    "veo-3.1-fast": {
+      "video": {
+        "endpoints": {
+          "https://api.kie.ai/veo-3.1-fast/v1/videos/generations": {
+            "success_count": 0,
+            "failure_count": 1,
+            "consecutive_failures": 1,
+            "last_success": null,
+            "last_failure": "2026-03-05T12:57:30.762337+00:00",
+            "last_status_code": 404,
+            "last_error_type": "http_status",
+            "last_error_message": "{\"timestamp\":1772715450210,\"status\":404,\"error\":\"Not Found\",\"message\":\"No message available\",\"path\":\"/veo-3.1-fast/v1/videos/generations\"}",
+            "last_params": {}
+          },
+          "https://api.kie.ai/v1/videos/generations": {
+            "success_count": 0,
+            "failure_count": 1,
+            "consecutive_failures": 1,
+            "last_success": null,
+            "last_failure": "2026-03-05T12:57:30.967488+00:00",
+            "last_status_code": 404,
+            "last_error_type": "http_status",
+            "last_error_message": "{\"timestamp\":1772715450415,\"status\":404,\"error\":\"Not Found\",\"message\":\"No message available\",\"path\":\"/v1/videos/generations\"}",
+            "last_params": {}
+          },
+          "https://api.kie.ai/veo-3.1-fast/api/v1/video/generate": {
+            "success_count": 0,
+            "failure_count": 1,
+            "consecutive_failures": 1,
+            "last_success": null,
+            "last_failure": "2026-03-05T12:57:31.317168+00:00",
+            "last_status_code": 404,
+            "last_error_type": "http_status",
+            "last_error_message": "{\"timestamp\":1772715450762,\"status\":404,\"error\":\"Not Found\",\"message\":\"No message available\",\"path\":\"/veo-3.1-fast/api/v1/video/generate\"}",
+            "last_params": {}
+          },
+          "https://api.kie.ai/api/v1/video/generate": {
+            "success_count": 0,
+            "failure_count": 1,
+            "consecutive_failures": 1,
+            "last_success": null,
+            "last_failure": "2026-03-05T12:57:31.518412+00:00",
+            "last_status_code": 404,
+            "last_error_type": "http_status",
+            "last_error_message": "{\"timestamp\":1772715450967,\"status\":404,\"error\":\"Not Found\",\"message\":\"No message available\",\"path\":\"/api/v1/video/generate\"}",
+            "last_params": {}
+          }
+        },
+        "last_failure_url": "https://api.kie.ai/api/v1/video/generate",
+        "status": "degraded"
+      }
+    },
+    "veo-3.1": {
+      "video": {
+        "endpoints": {
+          "https://api.kie.ai/veo-3.1/v1/videos/generations": {
+            "success_count": 0,
+            "failure_count": 1,
+            "consecutive_failures": 1,
+            "last_success": null,
+            "last_failure": "2026-03-05T12:57:31.810392+00:00",
+            "last_status_code": 404,
+            "last_error_type": "http_status",
+            "last_error_message": "{\"timestamp\":1772715451260,\"status\":404,\"error\":\"Not Found\",\"message\":\"No message available\",\"path\":\"/veo-3.1/v1/videos/generations\"}",
+            "last_params": {}
+          },
+          "https://api.kie.ai/v1/videos/generations": {
+            "success_count": 0,
+            "failure_count": 1,
+            "consecutive_failures": 1,
+            "last_success": null,
+            "last_failure": "2026-03-05T12:57:32.011857+00:00",
+            "last_status_code": 404,
+            "last_error_type": "http_status",
+            "last_error_message": "{\"timestamp\":1772715451461,\"status\":404,\"error\":\"Not Found\",\"message\":\"No message available\",\"path\":\"/v1/videos/generations\"}",
+            "last_params": {}
+          },
+          "https://api.kie.ai/veo-3.1/api/v1/video/generate": {
+            "success_count": 0,
+            "failure_count": 1,
+            "consecutive_failures": 1,
+            "last_success": null,
+            "last_failure": "2026-03-05T12:57:32.297375+00:00",
+            "last_status_code": 404,
+            "last_error_type": "http_status",
+            "last_error_message": "{\"timestamp\":1772715451745,\"status\":404,\"error\":\"Not Found\",\"message\":\"No message available\",\"path\":\"/veo-3.1/api/v1/video/generate\"}",
+            "last_params": {}
+          },
+          "https://api.kie.ai/api/v1/video/generate": {
+            "success_count": 0,
+            "failure_count": 1,
+            "consecutive_failures": 1,
+            "last_success": null,
+            "last_failure": "2026-03-05T12:57:32.503160+00:00",
+            "last_status_code": 404,
+            "last_error_type": "http_status",
+            "last_error_message": "{\"timestamp\":1772715451951,\"status\":404,\"error\":\"Not Found\",\"message\":\"No message available\",\"path\":\"/api/v1/video/generate\"}",
+            "last_params": {}
+          }
+        },
+        "last_failure_url": "https://api.kie.ai/api/v1/video/generate",
+        "status": "degraded"
+      }
+    },
+    "kling": {
+      "video": {
+        "endpoints": {
+          "https://api.kie.ai/kling/v1/videos/generations": {
+            "success_count": 0,
+            "failure_count": 1,
+            "consecutive_failures": 1,
+            "last_success": null,
+            "last_failure": "2026-03-05T12:57:32.707350+00:00",
+            "last_status_code": 404,
+            "last_error_type": "http_status",
+            "last_error_message": "{\"timestamp\":1772715452156,\"status\":404,\"error\":\"Not Found\",\"message\":\"No message available\",\"path\":\"/kling/v1/videos/generations\"}",
+            "last_params": {}
+          },
+          "https://api.kie.ai/v1/videos/generations": {
+            "success_count": 0,
+            "failure_count": 1,
+            "consecutive_failures": 1,
+            "last_success": null,
+            "last_failure": "2026-03-05T12:57:32.905889+00:00",
+            "last_status_code": 404,
+            "last_error_type": "http_status",
+            "last_error_message": "{\"timestamp\":1772715452355,\"status\":404,\"error\":\"Not Found\",\"message\":\"No message available\",\"path\":\"/v1/videos/generations\"}",
+            "last_params": {}
+          },
+          "https://api.kie.ai/kling/api/v1/video/generate": {
+            "success_count": 0,
+            "failure_count": 1,
+            "consecutive_failures": 1,
+            "last_success": null,
+            "last_failure": "2026-03-05T12:57:33.110108+00:00",
+            "last_status_code": 404,
+            "last_error_type": "http_status",
+            "last_error_message": "{\"timestamp\":1772715452559,\"status\":404,\"error\":\"Not Found\",\"message\":\"No message available\",\"path\":\"/kling/api/v1/video/generate\"}",
+            "last_params": {}
+          },
+          "https://api.kie.ai/api/v1/video/generate": {
+            "success_count": 0,
+            "failure_count": 1,
+            "consecutive_failures": 1,
+            "last_success": null,
+            "last_failure": "2026-03-05T12:57:33.314783+00:00",
+            "last_status_code": 404,
+            "last_error_type": "http_status",
+            "last_error_message": "{\"timestamp\":1772715452764,\"status\":404,\"error\":\"Not Found\",\"message\":\"No message available\",\"path\":\"/api/v1/video/generate\"}",
+            "last_params": {}
+          }
+        },
+        "last_failure_url": "https://api.kie.ai/api/v1/video/generate",
+        "status": "degraded"
+      }
+    },
+    "runway-aleph": {
+      "video": {
+        "endpoints": {
+          "https://api.kie.ai/runway-aleph/v1/videos/generations": {
+            "success_count": 0,
+            "failure_count": 1,
+            "consecutive_failures": 1,
+            "last_success": null,
+            "last_failure": "2026-03-05T12:57:33.515592+00:00",
+            "last_status_code": 404,
+            "last_error_type": "http_status",
+            "last_error_message": "{\"timestamp\":1772715452964,\"status\":404,\"error\":\"Not Found\",\"message\":\"No message available\",\"path\":\"/runway-aleph/v1/videos/generations\"}",
+            "last_params": {}
+          },
+          "https://api.kie.ai/v1/videos/generations": {
+            "success_count": 0,
+            "failure_count": 1,
+            "consecutive_failures": 1,
+            "last_success": null,
+            "last_failure": "2026-03-05T12:57:33.716446+00:00",
+            "last_status_code": 404,
+            "last_error_type": "http_status",
+            "last_error_message": "{\"timestamp\":1772715453166,\"status\":404,\"error\":\"Not Found\",\"message\":\"No message available\",\"path\":\"/v1/videos/generations\"}",
+            "last_params": {}
+          },
+          "https://api.kie.ai/runway-aleph/api/v1/video/generate": {
+            "success_count": 0,
+            "failure_count": 1,
+            "consecutive_failures": 1,
+            "last_success": null,
+            "last_failure": "2026-03-05T12:57:33.919559+00:00",
+            "last_status_code": 404,
+            "last_error_type": "http_status",
+            "last_error_message": "{\"timestamp\":1772715453369,\"status\":404,\"error\":\"Not Found\",\"message\":\"No message available\",\"path\":\"/runway-aleph/api/v1/video/generate\"}",
+            "last_params": {}
+          },
+          "https://api.kie.ai/api/v1/video/generate": {
+            "success_count": 0,
+            "failure_count": 1,
+            "consecutive_failures": 1,
+            "last_success": null,
+            "last_failure": "2026-03-05T12:57:34.126231+00:00",
+            "last_status_code": 404,
+            "last_error_type": "http_status",
+            "last_error_message": "{\"timestamp\":1772715453575,\"status\":404,\"error\":\"Not Found\",\"message\":\"No message available\",\"path\":\"/api/v1/video/generate\"}",
+            "last_params": {}
+          }
+        },
+        "last_failure_url": "https://api.kie.ai/api/v1/video/generate",
+        "status": "degraded"
+      }
+    },
+    "sora2": {
+      "video": {
+        "endpoints": {
+          "https://api.kie.ai/sora2/v1/videos/generations": {
+            "success_count": 0,
+            "failure_count": 1,
+            "consecutive_failures": 1,
+            "last_success": null,
+            "last_failure": "2026-03-05T12:57:34.328507+00:00",
+            "last_status_code": 404,
+            "last_error_type": "http_status",
+            "last_error_message": "{\"timestamp\":1772715453777,\"status\":404,\"error\":\"Not Found\",\"message\":\"No message available\",\"path\":\"/sora2/v1/videos/generations\"}",
+            "last_params": {}
+          },
+          "https://api.kie.ai/v1/videos/generations": {
+            "success_count": 0,
+            "failure_count": 1,
+            "consecutive_failures": 1,
+            "last_success": null,
+            "last_failure": "2026-03-05T12:57:34.530241+00:00",
+            "last_status_code": 404,
+            "last_error_type": "http_status",
+            "last_error_message": "{\"timestamp\":1772715453979,\"status\":404,\"error\":\"Not Found\",\"message\":\"No message available\",\"path\":\"/v1/videos/generations\"}",
+            "last_params": {}
+          },
+          "https://api.kie.ai/sora2/api/v1/video/generate": {
+            "success_count": 0,
+            "failure_count": 1,
+            "consecutive_failures": 1,
+            "last_success": null,
+            "last_failure": "2026-03-05T12:57:34.735150+00:00",
+            "last_status_code": 404,
+            "last_error_type": "http_status",
+            "last_error_message": "{\"timestamp\":1772715454184,\"status\":404,\"error\":\"Not Found\",\"message\":\"No message available\",\"path\":\"/sora2/api/v1/video/generate\"}",
+            "last_params": {}
+          },
+          "https://api.kie.ai/api/v1/video/generate": {
+            "success_count": 0,
+            "failure_count": 1,
+            "consecutive_failures": 1,
+            "last_success": null,
+            "last_failure": "2026-03-05T12:57:34.940752+00:00",
+            "last_status_code": 404,
+            "last_error_type": "http_status",
+            "last_error_message": "{\"timestamp\":1772715454388,\"status\":404,\"error\":\"Not Found\",\"message\":\"No message available\",\"path\":\"/api/v1/video/generate\"}",
+            "last_params": {}
+          }
+        },
+        "last_failure_url": "https://api.kie.ai/api/v1/video/generate",
+        "status": "degraded"
+      }
+    },
+    "nano-banana-pro": {
+      "image": {
+        "endpoints": {
+          "https://api.kie.ai/nano-banana-pro/v1/images/generations": {
+            "success_count": 0,
+            "failure_count": 7,
+            "consecutive_failures": 7,
+            "last_success": null,
+            "last_failure": "2026-03-06T03:30:35.209901+00:00",
+            "last_status_code": 404,
+            "last_error_type": "http_status",
+            "last_error_message": "{\"timestamp\":1772767834637,\"status\":404,\"error\":\"Not Found\",\"message\":\"No message available\",\"path\":\"/nano-banana-pro/v1/images/generations\"}",
+            "last_params": {}
+          },
+          "https://api.kie.ai/v1/images/generations": {
+            "success_count": 0,
+            "failure_count": 7,
+            "consecutive_failures": 7,
+            "last_success": null,
+            "last_failure": "2026-03-06T03:30:35.424443+00:00",
+            "last_status_code": 404,
+            "last_error_type": "http_status",
+            "last_error_message": "{\"timestamp\":1772767834851,\"status\":404,\"error\":\"Not Found\",\"message\":\"No message available\",\"path\":\"/v1/images/generations\"}",
+            "last_params": {}
+          },
+          "https://api.kie.ai/nano-banana-pro/api/v1/generate": {
+            "success_count": 0,
+            "failure_count": 4,
+            "consecutive_failures": 4,
+            "last_success": null,
+            "last_failure": "2026-03-06T03:22:42.913163+00:00",
+            "last_status_code": 404,
+            "last_error_type": "http_status",
+            "last_error_message": "{\"timestamp\":1772767362353,\"status\":404,\"error\":\"Not Found\",\"message\":\"No message available\",\"path\":\"/nano-banana-pro/api/v1/generate\"}",
+            "last_params": {}
+          },
+          "https://api.kie.ai/api/v1/generate": {
+            "success_count": 2,
+            "failure_count": 2,
+            "consecutive_failures": 2,
+            "last_success": "2026-03-05T13:22:17.669601+00:00",
+            "last_failure": "2026-03-06T03:22:42.304607+00:00",
+            "last_status_code": 500,
+            "last_error_type": "api_error",
+            "last_error_message": "customMode cannot be null",
+            "last_params": {
+              "prompt": "can i get a single UGC pic, a guy in living room , selfie or whatver, im going to use it as a start frame for UGC video. can you use nano banana, the original model, it will just be called nano banana, not pro or 2",
+              "n": 2,
+              "client_id": "drew-5trips",
+              "model": "nano-banana-pro"
+            }
+          }
+        },
+        "last_failure_url": "https://api.kie.ai/v1/images/generations",
+        "status": "down",
+        "last_success_url": "https://api.kie.ai/api/v1/generate"
+      }
+    },
+    "gpt-image-1": {
+      "image": {
+        "endpoints": {
+          "https://api.kie.ai/gpt-image-1/v1/images/generations": {
+            "success_count": 0,
+            "failure_count": 7,
+            "consecutive_failures": 7,
+            "last_success": null,
+            "last_failure": "2026-03-06T03:30:34.781777+00:00",
+            "last_status_code": 404,
+            "last_error_type": "http_status",
+            "last_error_message": "{\"timestamp\":1772767834209,\"status\":404,\"error\":\"Not Found\",\"message\":\"No message available\",\"path\":\"/gpt-image-1/v1/images/generations\"}",
+            "last_params": {}
+          },
+          "https://api.kie.ai/v1/images/generations": {
+            "success_count": 0,
+            "failure_count": 7,
+            "consecutive_failures": 7,
+            "last_success": null,
+            "last_failure": "2026-03-06T03:30:34.997097+00:00",
+            "last_status_code": 404,
+            "last_error_type": "http_status",
+            "last_error_message": "{\"timestamp\":1772767834424,\"status\":404,\"error\":\"Not Found\",\"message\":\"No message available\",\"path\":\"/v1/images/generations\"}",
+            "last_params": {}
+          },
+          "https://api.kie.ai/gpt-image-1/api/v1/generate": {
+            "success_count": 0,
+            "failure_count": 4,
+            "consecutive_failures": 4,
+            "last_success": null,
+            "last_failure": "2026-03-06T03:22:42.102281+00:00",
+            "last_status_code": 404,
+            "last_error_type": "http_status",
+            "last_error_message": "{\"timestamp\":1772767361540,\"status\":404,\"error\":\"Not Found\",\"message\":\"No message available\",\"path\":\"/gpt-image-1/api/v1/generate\"}",
+            "last_params": {}
+          },
+          "https://api.kie.ai/api/v1/generate": {
+            "success_count": 2,
+            "failure_count": 2,
+            "consecutive_failures": 2,
+            "last_success": "2026-03-05T13:22:16.636559+00:00",
+            "last_failure": "2026-03-06T03:22:41.157298+00:00",
+            "last_status_code": 500,
+            "last_error_type": "api_error",
+            "last_error_message": "Please enter callBackUrl.",
+            "last_params": {
+              "prompt": "can i get a single UGC pic, a guy in living room , selfie or whatver, im going to use it as a start frame for UGC video. can you use nano banana, the original model, it will just be called nano banana, not pro or 2",
+              "n": 2,
+              "client_id": "drew-5trips",
+              "model": "gpt-image-1"
+            }
+          },
+          "https://api.kie.ai/api/v1/jobs/createTask": {
+            "success_count": 0,
+            "failure_count": 1,
+            "consecutive_failures": 1,
+            "last_success": null,
+            "last_failure": "2026-03-06T03:34:58.956527+00:00",
+            "last_status_code": 500,
+            "last_error_type": "api_error",
+            "last_error_message": "The model name you specified is not supported. Please verify your input and use one of the supported models provided by KIE.",
+            "last_params": {}
+          }
+        },
+        "last_failure_url": "https://api.kie.ai/api/v1/jobs/createTask",
+        "status": "down",
+        "last_success_url": "https://api.kie.ai/api/v1/generate"
+      }
+    },
+    "flux-kontext": {
+      "image": {
+        "endpoints": {
+          "https://api.kie.ai/flux-kontext/v1/images/generations": {
+            "success_count": 0,
+            "failure_count": 7,
+            "consecutive_failures": 7,
+            "last_success": null,
+            "last_failure": "2026-03-06T03:30:35.644325+00:00",
+            "last_status_code": 404,
+            "last_error_type": "http_status",
+            "last_error_message": "{\"timestamp\":1772767835071,\"status\":404,\"error\":\"Not Found\",\"message\":\"No message available\",\"path\":\"/flux-kontext/v1/images/generations\"}",
+            "last_params": {}
+          },
+          "https://api.kie.ai/v1/images/generations": {
+            "success_count": 0,
+            "failure_count": 7,
+            "consecutive_failures": 7,
+            "last_success": null,
+            "last_failure": "2026-03-06T03:30:35.858581+00:00",
+            "last_status_code": 404,
+            "last_error_type": "http_status",
+            "last_error_message": "{\"timestamp\":1772767835285,\"status\":404,\"error\":\"Not Found\",\"message\":\"No message available\",\"path\":\"/v1/images/generations\"}",
+            "last_params": {}
+          },
+          "https://api.kie.ai/flux-kontext/api/v1/generate": {
+            "success_count": 0,
+            "failure_count": 4,
+            "consecutive_failures": 4,
+            "last_success": null,
+            "last_failure": "2026-03-06T03:22:43.835715+00:00",
+            "last_status_code": 404,
+            "last_error_type": "http_status",
+            "last_error_message": "{\"timestamp\":1772767363276,\"status\":404,\"error\":\"Not Found\",\"message\":\"No message available\",\"path\":\"/flux-kontext/api/v1/generate\"}",
+            "last_params": {}
+          },
+          "https://api.kie.ai/api/v1/generate": {
+            "success_count": 2,
+            "failure_count": 2,
+            "consecutive_failures": 2,
+            "last_success": "2026-03-05T13:22:15.588423+00:00",
+            "last_failure": "2026-03-06T03:22:43.116130+00:00",
+            "last_status_code": 500,
+            "last_error_type": "api_error",
+            "last_error_message": "model error",
+            "last_params": {
+              "prompt": "can i get a single UGC pic, a guy in living room , selfie or whatver, im going to use it as a start frame for UGC video. can you use nano banana, the original model, it will just be called nano banana, not pro or 2",
+              "n": 2,
+              "client_id": "drew-5trips",
+              "model": "flux-kontext"
+            }
+          }
+        },
+        "last_failure_url": "https://api.kie.ai/v1/images/generations",
+        "status": "down",
+        "last_success_url": "https://api.kie.ai/api/v1/generate"
+      }
+    },
+    "midjourney": {
+      "image": {
+        "endpoints": {
+          "https://api.kie.ai/midjourney/v1/images/generations": {
+            "success_count": 0,
+            "failure_count": 7,
+            "consecutive_failures": 7,
+            "last_success": null,
+            "last_failure": "2026-03-06T03:30:36.070514+00:00",
+            "last_status_code": 404,
+            "last_error_type": "http_status",
+            "last_error_message": "{\"timestamp\":1772767835497,\"status\":404,\"error\":\"Not Found\",\"message\":\"No message available\",\"path\":\"/midjourney/v1/images/generations\"}",
+            "last_params": {}
+          },
+          "https://api.kie.ai/v1/images/generations": {
+            "success_count": 0,
+            "failure_count": 7,
+            "consecutive_failures": 7,
+            "last_success": null,
+            "last_failure": "2026-03-06T03:30:36.285846+00:00",
+            "last_status_code": 404,
+            "last_error_type": "http_status",
+            "last_error_message": "{\"timestamp\":1772767835713,\"status\":404,\"error\":\"Not Found\",\"message\":\"No message available\",\"path\":\"/v1/images/generations\"}",
+            "last_params": {}
+          },
+          "https://api.kie.ai/midjourney/api/v1/generate": {
+            "success_count": 0,
+            "failure_count": 4,
+            "consecutive_failures": 4,
+            "last_success": null,
+            "last_failure": "2026-03-06T03:22:44.732274+00:00",
+            "last_status_code": 404,
+            "last_error_type": "http_status",
+            "last_error_message": "{\"timestamp\":1772767364173,\"status\":404,\"error\":\"Not Found\",\"message\":\"No message available\",\"path\":\"/midjourney/api/v1/generate\"}",
+            "last_params": {}
+          },
+          "https://api.kie.ai/api/v1/generate": {
+            "success_count": 2,
+            "failure_count": 2,
+            "consecutive_failures": 2,
+            "last_success": "2026-03-05T13:22:18.612602+00:00",
+            "last_failure": "2026-03-06T03:22:44.040162+00:00",
+            "last_status_code": 500,
+            "last_error_type": "api_error",
+            "last_error_message": "model error",
+            "last_params": {
+              "prompt": "can i get a single UGC pic, a guy in living room , selfie or whatver, im going to use it as a start frame for UGC video. can you use nano banana, the original model, it will just be called nano banana, not pro or 2",
+              "n": 2,
+              "client_id": "drew-5trips",
+              "model": "midjourney"
+            }
+          }
+        },
+        "last_failure_url": "https://api.kie.ai/v1/images/generations",
+        "status": "down",
+        "last_success_url": "https://api.kie.ai/api/v1/generate"
+      }
+    },
+    "models": {
+      "list": {
+        "endpoints": {
+          "https://api.kie.ai/v1/models": {
+            "success_count": 0,
+            "failure_count": 74,
+            "consecutive_failures": 74,
+            "last_success": null,
+            "last_failure": "2026-03-06T03:47:42.798501+00:00",
+            "last_status_code": 404,
+            "last_error_type": "http_status",
+            "last_error_message": "{\"timestamp\":1772768862198,\"status\":404,\"error\":\"Not Found\",\"message\":\"No message available\",\"path\":\"/v1/models\"}",
+            "last_params": {}
+          },
+          "https://api.kie.ai/models": {
+            "success_count": 0,
+            "failure_count": 73,
+            "consecutive_failures": 73,
+            "last_success": null,
+            "last_failure": "2026-03-06T03:47:42.391138+00:00",
+            "last_status_code": 404,
+            "last_error_type": "http_status",
+            "last_error_message": "{\"timestamp\":1772768861791,\"status\":404,\"error\":\"Not Found\",\"message\":\"No message available\",\"path\":\"/models\"}",
+            "last_params": {}
+          },
+          "https://api.kie.ai/api/v1/models": {
+            "success_count": 0,
+            "failure_count": 73,
+            "consecutive_failures": 73,
+            "last_success": null,
+            "last_failure": "2026-03-06T03:47:42.595554+00:00",
+            "last_status_code": 404,
+            "last_error_type": "http_status",
+            "last_error_message": "{\"timestamp\":1772768861995,\"status\":404,\"error\":\"Not Found\",\"message\":\"No message available\",\"path\":\"/api/v1/models\"}",
+            "last_params": {}
+          }
+        },
+        "last_failure_url": "https://api.kie.ai/v1/models",
+        "status": "down"
+      }
+    },
+    "gemini-2.5-flash": {
+      "chat": {
+        "endpoints": {
+          "https://api.kie.ai/gemini-2.5-flash/v1/chat/completions": {
+            "success_count": 56,
+            "failure_count": 35,
+            "consecutive_failures": 0,
+            "last_success": "2026-03-06T04:19:25.542696+00:00",
+            "last_failure": "2026-03-06T03:46:45.677096+00:00",
+            "last_status_code": 200,
+            "last_error_type": null,
+            "last_error_message": null,
+            "last_params": {
+              "model": "gemini-2.5-flash",
+              "messages": [
+                {
+                  "role": "system",
+                  "content": "You are Agent Gepetto. Active project: drew-5trips.\nYou are the agent. Decide what to do next.\nWhen the user requests generation, you MUST either call a tool or ask a clarification question.\nIf the user already specified a model earlier in the conversation, use that exact model without asking again.\nIf the user states a lasting preference or rule (e.g. 'for this project', 'always', 'only', 'never'), you MUST call update_project_preferences to save it and then confirm it was saved.\n\n**Generating Images / Videos**\nDo NOT assume or hardcode what models exist or what models are best. The available models are dynamic.\nIf a specific model is not explicitly requested by the user or defined in the preferences, you MUST use the `search_available_models` tool to query Kie.ai for the currently available options.\nIf the choice is ambiguous, ask the user. Pass the exact model name string to the `model` parameter.\nIf the tool returns an error, gracefully inform the user, log the failure, and attempt a retry using a different model from the available list or a modified prompt.\nNever expose raw API errors.\nLearned/project preferences:\n## Global Rules (all projects)\n# Global Agent Preferences\n# These apply to ALL projects unless overridden by per-project preferences.\n\n## Aspect Ratios\n- UGC content (selfies, testimonials, lifestyle, talking head, product demos): ALWAYS 9:16 portrait\n- Product shots, still life, pack shots: ALWAYS 1:1 square\n- Cinematic / brand film stills: ALWAYS 16:9 landscape\n- Default if not specified: 1:1\n\n## Generation Defaults\n- Variants per request: 4 (2 concepts \u00d7 2 variants)\n- Default style: photorealistic unless brief specifies otherwise\n- Default image model: gpt-image-1\n- Default video model: veo-3.1-fast\n\n## UGC Rules\n- UGC images must look organic and unposed \u2014 not professional photography\n- Natural lighting preferred (window light, ambient)\n- Slight motion blur or camera shake is acceptable and preferred\n- No studio lighting, no seamless backgrounds\n- Subject should look directly at camera unless brief specifies otherwise\n\n## Quality Gates (human review \u2014 NO automated scoring)\n- All variants go to the human review gallery\n- Only auto-reject: API error, corrupt file, or completely blank image\n- Human always makes final keep/reject decision\n\n## Prompt Construction\n- Always include aspect ratio as parameter (e.g. --ar 9:16 for Midjourney, or in prompt text for others)\n- Always include the model explicitly in the tool call\n- Keep prompts concise \u2014 describe the shot, not a novel\n\n\n## Project-Specific Rules (override global)\n# [Client Name] - Project Preferences\n# TEMPLATE - fill in with real details for this client\n\n## Client\n- Brand: [brand name]\n- Contact: [contact name]\n- Content type: [e.g. UGC social media, brand graphics, promo videos]\n\n## Visual Style\n- [describe the look and feel]\n- [colour palette, lighting, mood]\n- [what to include]\n- Avoid: [what NOT to do]\n\n## QC Standards\n- Minimum score: [7.0-9.0]/10\n- Key criteria: [what matters most - face realism, brand accuracy, etc.]\n- Auto-reject: [dealbreakers - extra fingers, wrong colours, etc.]\n\n## Prompt Patterns\n- Always include: \"[key style words that should be in every prompt]\"\n- Avoid in prompts: \"[words that produce wrong results]\"\n\n## Reference Assets\n- Product images, logos, and reference material go in the /assets/ subfolder\n- The agent can access these when generating (e.g. for image-to-image, style reference)\n\n## Notes\n- [any other context the agent should know about this client]\n- [delivery preferences, turnaround expectations, etc.]\n\n\n## Learned Patterns (auto-generated from your feedback)\n- Additions: \n- Exclusions: \n- Positive patterns: \n- Negative patterns:"
+                },
+                {
+                  "role": "user",
+                  "content": "hello"
+                },
+                {
+                  "role": "assistant",
+                  "content": "Hello there! How can I help you today with your project?"
+                },
+                {
+                  "role": "user",
+                  "content": "lets generate an image using z-image , lets do a mirro selfie,. whatever"
+                },
+                {
+                  "role": "assistant",
+                  "content": "Generated 1.\n\n![variant_0](/api/storage/download/drew-5trips/generated/gen_1517d88616b64b42a1714f9741f58eea_0.jpg)"
+                },
+                {
+                  "role": "user",
+                  "content": "selfies should always be 9:16"
+                },
+                {
+                  "role": "system",
+                  "content": "You must respond with a tool call when the user requests image generation. Do not describe or claim images were generated unless a tool call was executed."
+                },
+                {
+                  "role": "system",
+                  "content": "You must respond with a tool call when the user requests image generation. Do not describe or claim images were generated unless a tool call was executed."
+                },
+                {
+                  "role": "system",
+                  "content": "You must respond with a tool call when the user requests image generation. Do not describe or claim images were generated unless a tool call was executed."
+                },
+                {
+                  "role": "system",
+                  "content": "You must respond with a tool call when the user requests image generation. Do not describe or claim images were generated unless a tool call was executed."
+                },
+                {
+                  "role": "system",
+                  "content": "You must respond with a tool call when the user requests image generation. Do not describe or claim images were generated unless a tool call was executed."
+                },
+                {
+                  "role": "system",
+                  "content": "You must respond with a tool call when the user requests image generation. Do not describe or claim images were generated unless a tool call was executed."
+                },
+                {
+                  "role": "system",
+                  "content": "You must respond with a tool call when the user requests image generation. Do not describe or claim images were generated unless a tool call was executed."
+                },
+                {
+                  "role": "system",
+                  "content": "You must respond with a tool call when the user requests image generation. Do not describe or claim images were generated unless a tool call was executed."
+                },
+                {
+                  "role": "system",
+                  "content": "You must respond with a tool call when the user requests image generation. Do not describe or claim images were generated unless a tool call was executed."
+                },
+                {
+                  "role": "system",
+                  "content": "You must respond with a tool call when the user requests image generation. Do not describe or claim images were generated unless a tool call was executed."
+                },
+                {
+                  "role": "system",
+                  "content": "You must respond with a tool call when the user requests image generation. Do not describe or claim images were generated unless a tool call was executed."
+                }
+              ],
+              "tools": [
+                {
+                  "type": "function",
+                  "function": {
+                    "name": "search_available_models",
+                    "description": "List available models and metadata (name, type, pricing, status).",
+                    "parameters": {
+                      "type": "object",
+                      "properties": {
+                        "query": {
+                          "type": "string"
+                        },
+                        "kind": {
+                          "type": "string",
+                          "enum": [
+                            "image",
+                            "video",
+                            "chat",
+                            "any"
+                          ]
+                        }
+                      },
+                      "required": []
+                    }
+                  }
+                },
+                {
+                  "type": "function",
+                  "function": {
+                    "name": "generate_images",
+                    "description": "Generate one or more distinct images using the specified model.",
+                    "parameters": {
+                      "type": "object",
+                      "properties": {
+                        "prompts": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          },
+                          "description": "Array of detailed prompts. Each prompt generates one distinct image."
+                        },
+                        "model": {
+                          "type": "string",
+                          "description": "The exact API name of the image model to use."
+                        },
+                        "size": {
+                          "type": "string",
+                          "description": "Aspect ratio/resolution (e.g. 1024x1024, 1024x1792)"
+                        },
+                        "project_id": {
+                          "type": "string"
+                        },
+                        "style_overrides": {
+                          "type": "object"
+                        }
+                      },
+                      "required": [
+                        "prompts",
+                        "project_id",
+                        "model"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "type": "function",
+                  "function": {
+                    "name": "generate_videos",
+                    "description": "Generate videos with Kie.ai",
+                    "parameters": {
+                      "type": "object",
+                      "properties": {
+                        "prompts": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "model": {
+                          "type": "string"
+                        },
+                        "project_id": {
+                          "type": "string"
+                        },
+                        "reference_images": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "required": [
+                        "prompts",
+                        "project_id",
+                        "model"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "type": "function",
+                  "function": {
+                    "name": "save_to_storage",
+                    "description": "Save files to local storage",
+                    "parameters": {
+                      "type": "object",
+                      "properties": {
+                        "files": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "project_id": {
+                          "type": "string"
+                        },
+                        "subfolder": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "files",
+                        "project_id",
+                        "subfolder"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "type": "function",
+                  "function": {
+                    "name": "trigger_n8n_workflow",
+                    "description": "Trigger n8n workflow",
+                    "parameters": {
+                      "type": "object",
+                      "properties": {
+                        "workflow_name": {
+                          "type": "string",
+                          "enum": [
+                            "ugc-batch",
+                            "video-render",
+                            "script-process",
+                            "voice-generate"
+                          ]
+                        },
+                        "payload": {
+                          "type": "object"
+                        }
+                      },
+                      "required": [
+                        "workflow_name",
+                        "payload"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "type": "function",
+                  "function": {
+                    "name": "read_project_preferences",
+                    "description": "Read project preferences and learned patterns",
+                    "parameters": {
+                      "type": "object",
+                      "properties": {
+                        "project_id": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "project_id"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "type": "function",
+                  "function": {
+                    "name": "update_project_preferences",
+                    "description": "Update project preferences",
+                    "parameters": {
+                      "type": "object",
+                      "properties": {
+                        "project_id": {
+                          "type": "string"
+                        },
+                        "updates": {
+                          "type": "object"
+                        }
+                      },
+                      "required": [
+                        "project_id",
+                        "updates"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "type": "function",
+                  "function": {
+                    "name": "log_cost",
+                    "description": "Log cost entry",
+                    "parameters": {
+                      "type": "object",
+                      "properties": {
+                        "amount_usd": {
+                          "type": "number"
+                        },
+                        "service": {
+                          "type": "string",
+                          "enum": [
+                            "kie-chat",
+                            "kie-image",
+                            "kie-video",
+                            "kie-vision",
+                            "elevenlabs"
+                          ]
+                        },
+                        "model": {
+                          "type": "string"
+                        },
+                        "project_id": {
+                          "type": "string"
+                        },
+                        "description": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "amount_usd",
+                        "service",
+                        "model",
+                        "project_id",
+                        "description"
+                      ]
+                    }
+                  }
+                }
+              ],
+              "tool_choice": "auto"
+            }
+          },
+          "https://api.kie.ai/v1/chat/completions": {
+            "success_count": 0,
+            "failure_count": 6,
+            "consecutive_failures": 6,
+            "last_success": null,
+            "last_failure": "2026-03-06T03:46:46.418511+00:00",
+            "last_status_code": 404,
+            "last_error_type": "http_status",
+            "last_error_message": "{\"timestamp\":1772768805792,\"status\":404,\"error\":\"Not Found\",\"message\":\"No message available\",\"path\":\"/v1/chat/completions\"}",
+            "last_params": {}
+          },
+          "https://api.kie.ai/chat/completions": {
+            "success_count": 0,
+            "failure_count": 2,
+            "consecutive_failures": 2,
+            "last_success": null,
+            "last_failure": "2026-03-06T03:46:46.060656+00:00",
+            "last_status_code": 404,
+            "last_error_type": "http_status",
+            "last_error_message": "{\"timestamp\":1772768805461,\"status\":404,\"error\":\"Not Found\",\"message\":\"No message available\",\"path\":\"/chat/completions\"}",
+            "last_params": {}
+          }
+        },
+        "status": "healthy",
+        "last_success_url": "https://api.kie.ai/gemini-2.5-flash/v1/chat/completions",
+        "last_failure_url": "https://api.kie.ai/v1/chat/completions"
+      }
+    },
+    "z-image": {
+      "image": {
+        "endpoints": {
+          "https://api.kie.ai/z-image/v1/images/generations": {
+            "success_count": 0,
+            "failure_count": 2,
+            "consecutive_failures": 2,
+            "last_success": null,
+            "last_failure": "2026-03-06T03:25:18.975148+00:00",
+            "last_status_code": 404,
+            "last_error_type": "http_status",
+            "last_error_message": "{\"timestamp\":1772767518400,\"status\":404,\"error\":\"Not Found\",\"message\":\"No message available\",\"path\":\"/z-image/v1/images/generations\"}",
+            "last_params": {}
+          },
+          "https://api.kie.ai/v1/images/generations": {
+            "success_count": 0,
+            "failure_count": 2,
+            "consecutive_failures": 2,
+            "last_success": null,
+            "last_failure": "2026-03-06T03:25:19.183202+00:00",
+            "last_status_code": 404,
+            "last_error_type": "http_status",
+            "last_error_message": "{\"timestamp\":1772767518616,\"status\":404,\"error\":\"Not Found\",\"message\":\"No message available\",\"path\":\"/v1/images/generations\"}",
+            "last_params": {}
+          },
+          "https://api.kie.ai/z-image/api/v1/generate": {
+            "success_count": 0,
+            "failure_count": 1,
+            "consecutive_failures": 1,
+            "last_success": null,
+            "last_failure": "2026-03-06T03:19:27.969250+00:00",
+            "last_status_code": 404,
+            "last_error_type": "http_status",
+            "last_error_message": "{\"timestamp\":1772767167419,\"status\":404,\"error\":\"Not Found\",\"message\":\"No message available\",\"path\":\"/z-image/api/v1/generate\"}",
+            "last_params": {}
+          },
+          "https://api.kie.ai/api/v1/generate": {
+            "success_count": 0,
+            "failure_count": 1,
+            "consecutive_failures": 1,
+            "last_success": null,
+            "last_failure": "2026-03-06T03:19:28.174659+00:00",
+            "last_status_code": 500,
+            "last_error_type": "api_error",
+            "last_error_message": "customMode cannot be null",
+            "last_params": {}
+          },
+          "https://api.kie.ai/api/v1/jobs/createTask": {
+            "success_count": 1,
+            "failure_count": 0,
+            "consecutive_failures": 0,
+            "last_success": "2026-03-06T03:47:43.075560+00:00",
+            "last_failure": null,
+            "last_status_code": 200,
+            "last_error_type": null,
+            "last_error_message": null,
+            "last_params": {
+              "model": "z-image",
+              "input": {
+                "prompt": "lets generate an image , lets do a mirro selfie,. whatever",
+                "aspect_ratio": "1:1"
+              }
+            }
+          }
+        },
+        "last_failure_url": "https://api.kie.ai/v1/images/generations",
+        "status": "healthy",
+        "last_success_url": "https://api.kie.ai/api/v1/jobs/createTask"
+      },
+      "poll_image": {
+        "status": "healthy",
+        "last_success_url": "https://api.kie.ai/api/v1/jobs/recordInfo?taskId=ee4cbba68dfdacecb47be27d0ac66d91",
+        "last_failure_url": null,
+        "endpoints": {
+          "https://api.kie.ai/api/v1/jobs/recordInfo?taskId=ee4cbba68dfdacecb47be27d0ac66d91": {
+            "success_count": 5,
+            "failure_count": 0,
+            "consecutive_failures": 0,
+            "last_success": "2026-03-06T03:47:59.117073+00:00",
+            "last_failure": null,
+            "last_status_code": 200,
+            "last_error_type": null,
+            "last_error_message": null,
+            "last_params": {
+              "method": "GET"
+            }
+          }
+        }
+      }
+    },
+    "z-image do whatever you want": {
+      "image": {
+        "endpoints": {
+          "https://api.kie.ai/z-image do whatever you want/v1/images/generations": {
+            "success_count": 0,
+            "failure_count": 1,
+            "consecutive_failures": 1,
+            "last_success": null,
+            "last_failure": "2026-03-06T03:22:40.210270+00:00",
+            "last_status_code": 404,
+            "last_error_type": "http_status",
+            "last_error_message": "{\"timestamp\":1772767359651,\"status\":404,\"error\":\"Not Found\",\"message\":\"No message available\",\"path\":\"/z-image%20do%20whatever%20you%20want/v1/images/generations\"}",
+            "last_params": {}
+          },
+          "https://api.kie.ai/v1/images/generations": {
+            "success_count": 0,
+            "failure_count": 1,
+            "consecutive_failures": 1,
+            "last_success": null,
+            "last_failure": "2026-03-06T03:22:40.541217+00:00",
+            "last_status_code": 404,
+            "last_error_type": "http_status",
+            "last_error_message": "{\"timestamp\":1772767359982,\"status\":404,\"error\":\"Not Found\",\"message\":\"No message available\",\"path\":\"/v1/images/generations\"}",
+            "last_params": {}
+          },
+          "https://api.kie.ai/z-image do whatever you want/api/v1/generate": {
+            "success_count": 0,
+            "failure_count": 1,
+            "consecutive_failures": 1,
+            "last_success": null,
+            "last_failure": "2026-03-06T03:22:40.749514+00:00",
+            "last_status_code": 404,
+            "last_error_type": "http_status",
+            "last_error_message": "{\"timestamp\":1772767360190,\"status\":404,\"error\":\"Not Found\",\"message\":\"No message available\",\"path\":\"/z-image%20do%20whatever%20you%20want/api/v1/generate\"}",
+            "last_params": {}
+          },
+          "https://api.kie.ai/api/v1/generate": {
+            "success_count": 0,
+            "failure_count": 1,
+            "consecutive_failures": 1,
+            "last_success": null,
+            "last_failure": "2026-03-06T03:22:40.956266+00:00",
+            "last_status_code": 500,
+            "last_error_type": "api_error",
+            "last_error_message": "Please enter callBackUrl.",
+            "last_params": {}
+          }
+        },
+        "last_failure_url": "https://api.kie.ai/api/v1/generate",
+        "status": "degraded"
+      }
+    }
+  }
+}

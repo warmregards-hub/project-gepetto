@@ -1,0 +1,27 @@
+@import "tailwindcss";
+
+@theme {
+  --color-accent: #E8825A;
+  --color-accent-hover: #d76e46;
+  --font-sans: "Instrument Serif", serif;
+  --font-serif: "Instrument Serif", serif;
+  --font-mono: "Instrument Serif", serif;
+}
+
+@layer base {
+  body {
+    @apply bg-white text-zinc-950 antialiased tracking-tight;
+    font-size: 22px;
+    font-weight: 600;
+    line-height: 1.4;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-bold;
+  }
+}
