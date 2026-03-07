@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
-from app.api.routes import agent, generate, projects, n8n, learning, auth, storage, kie, sessions, lora
+from app.api.routes import agent, generate, projects, n8n, learning, auth, storage, kie, sessions, lora, voice
 
 app = FastAPI(title="Warm Regards Creative Hub (Project Gepetto)")
 
@@ -29,6 +29,7 @@ app.include_router(storage.router, prefix="/api/storage", tags=["storage"])
 app.include_router(kie.router, prefix="/api/kie", tags=["kie"])
 app.include_router(sessions.router, prefix="/api/sessions", tags=["sessions"])
 app.include_router(lora.router, prefix="/api/lora", tags=["lora"])
+app.include_router(voice.router, prefix="/api/voice", tags=["voice"])
 
 
 @app.on_event("startup")

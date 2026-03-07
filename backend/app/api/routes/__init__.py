@@ -7,5 +7,6 @@ from .auth import router as auth_router
 from .storage import router as storage_router
 from .sessions import router as sessions_router
 from .lora import router as lora_router
+from .voice import router as voice_router
 
-__all__ = ["agent_router", "generate_router", "projects_router", "n8n_router", "learning_router", "auth_router", "storage_router", "sessions_router", "lora_router"]
+__all__ = ["agent_router", "generate_router", "projects_router", "n8n_router", "learning_router", "auth_router", "storage_router", "sessions_router", "lora_router", "voice_router"]

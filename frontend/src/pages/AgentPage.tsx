@@ -1,10 +1,11 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { ConversationView } from '../components/agent/ConversationView';
 import { ScriptPaste } from '../components/agent/ScriptPaste';
 import { VoiceInput } from '../components/agent/VoiceInput';
 import { ProjectSelector } from '../components/agent/ProjectSelector';
 import { StatusMonitor } from '../components/agent/StatusMonitor';
 import { useAgent } from '../hooks/useAgent';
+import { useVoice } from '../hooks/useVoice';
 import { useProjectStore } from '../stores/projectStore';
 import { useLayoutStore } from '../stores/layoutStore';
 import { useSessionStore } from '../stores/sessionStore';
@@ -12,9 +13,11 @@ import { Menu } from 'lucide-react';
 
 export function AgentPage() {
     const { sendMessage, error } = useAgent();
+    const { isRecording, isAvailable, startRecording, stopRecording } = useVoice();
     const { activeProject, setProjects, setActiveProject } = useProjectStore();
     const { startNewSession } = useSessionStore();
     const { setSidebarOpen } = useLayoutStore();
+    const [draftText, setDraftText] = useState('');
 
     // Mock initial data load for phase 1 testing
     useEffect(() => {
@@ -32,6 +35,17 @@ export function AgentPage() {
         if (!activeProject) return;
         startNewSession();
     }, [activeProject?.id, startNewSession]);
+
+    useEffect(() => {
+        const handler = (event: Event) => {
+            const detail = (event as CustomEvent<string>).detail;
+            if (detail) {
+                setDraftText(detail);
+            }
+        };
+        window.addEventListener('gepetto-voice-brief', handler as EventListener);
+        return () => window.removeEventListener('gepetto-voice-brief', handler as EventListener);
+    }, []);
 
     const handleSend = (msg: string) => {
         sendMessage(msg);
@@ -69,10 +83,20 @@ export function AgentPage() {
 
             <footer className="flex-none p-4 md:p-8 border-t border-zinc-100 bg-zinc-50/50 backdrop-blur-md min-h-[100px] md:min-h-[120px]">
                 <div className="max-w-5xl mx-auto flex items-end gap-3 md:gap-6">
-                    <VoiceInput />
+                    <VoiceInput
+                        isRecording={isRecording}
+                        onStart={startRecording}
+                        onStop={stopRecording}
+                        disabled={!activeProject || !isAvailable}
+                    />
                     <div className="flex-1">
-                        <ScriptPaste onSend={handleSend} disabled={!activeProject} />
-                    </div>
+                            <ScriptPaste
+                                onSend={handleSend}
+                                disabled={!activeProject}
+                                value={draftText}
+                                onChange={setDraftText}
+                            />
+                        </div>
                 </div>
             </footer>
         </div>

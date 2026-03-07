@@ -4,10 +4,21 @@ import { Send, Upload } from 'lucide-react';
 interface Props {
     onSend: (msg: string) => void;
     disabled?: boolean;
+    value?: string;
+    onChange?: (value: string) => void;
 }
 
-export function ScriptPaste({ onSend, disabled }: Props) {
-    const [text, setText] = useState('');
+export function ScriptPaste({ onSend, disabled, value, onChange }: Props) {
+    const [internalText, setInternalText] = useState('');
+    const isControlled = typeof value !== 'undefined';
+    const text = isControlled ? value : internalText;
+    const setText = (next: string) => {
+        if (isControlled && onChange) {
+            onChange(next);
+            return;
+        }
+        setInternalText(next);
+    };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
