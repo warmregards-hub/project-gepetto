@@ -176,8 +176,11 @@ class KieClient:
         EndpointRegistry(settings.endpoint_registry_path).load()
 
     async def chat_completion(self, messages: List[Dict[str, Any]], tools: Optional[List[Dict[str, Any]]] = None) -> Dict[str, Any]:
-        model = "gemini-2.5-flash"
+        model = settings.kie_chat_model
         payload: Dict[str, Any] = {"model": model, "messages": messages}
+        if settings.kie_chat_reasoning:
+            payload["reasoning"] = settings.kie_chat_reasoning
+        payload["temperature"] = settings.kie_chat_temperature
         if tools:
             payload["tools"] = tools
             payload["tool_choice"] = "auto"
@@ -265,6 +268,7 @@ class KieClient:
         size: str = "1024x1024",
         callback_url: Optional[str] = None,
         project_id: Optional[str] = None,
+        allow_fallbacks: bool = False,
     ) -> Dict[str, Any]:
         if settings.mock_generation:
             return {
@@ -288,7 +292,8 @@ class KieClient:
                 count=1,
                 callback_url=callback_url,
                 project_id=project_id,
-                size=size
+                size=size,
+                allow_fallbacks=allow_fallbacks,
             )
             if not result.get("ok"):
                 errors.append(result)
@@ -320,6 +325,7 @@ class KieClient:
         model: str,
         callback_url: Optional[str] = None,
         project_id: Optional[str] = None,
+        allow_fallbacks: bool = False,
     ) -> Dict[str, Any]:
         if settings.mock_generation:
             return {
@@ -336,6 +342,7 @@ class KieClient:
             count=1,
             callback_url=callback_url,
             project_id=project_id,
+            allow_fallbacks=allow_fallbacks,
         )
 
     async def _generate(
@@ -347,6 +354,7 @@ class KieClient:
         callback_url: Optional[str],
         project_id: Optional[str],
         size: str = "1024x1024",
+        allow_fallbacks: bool = False,
     ) -> Dict[str, Any]:
         if kind == "image" and self._use_jobs_api():
             return await self._generate_via_jobs_api(
@@ -367,7 +375,7 @@ class KieClient:
         if use_callback:
             payload_base["callBackUrl"] = callback_url
 
-        sequence = self._model_sequence(kind, requested_model)
+        sequence = self._model_sequence(kind, requested_model) if allow_fallbacks else [requested_model]
         errors: List[Dict[str, Any]] = []
 
         for model in sequence:

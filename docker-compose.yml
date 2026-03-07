@@ -7,11 +7,9 @@ services:
     container_name: gepetto_frontend
     ports:
       - "5173:5173"
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
     environment:
-      - VITE_API_URL=http://localhost:8000
+      - VITE_API_URL=https://gepetto.regards.studio
+      - VITE_ELEVENLABS_AGENT_ID=${ELEVENLABS_AGENT_ID}
     depends_on:
       - backend
     restart: unless-stopped

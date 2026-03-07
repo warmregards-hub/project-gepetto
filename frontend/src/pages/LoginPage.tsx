@@ -24,14 +24,25 @@ export function LoginPage() {
                     'Content-Type': 'application/x-www-form-urlencoded',
                 },
                 body: formData,
+                credentials: 'include',
             });
 
-            if (!response.ok) {
-                const data = await response.json();
-                throw new Error(data.detail || 'Login failed');
+            const contentType = response.headers.get('content-type') || '';
+            const raw = await response.text();
+            const data = contentType.includes('application/json') && raw ? JSON.parse(raw) : null;
+
+            if (response.redirected && response.url.includes('cloudflareaccess.com')) {
+                window.location.href = response.url;
+                return;
             }
 
-            const data = await response.json();
+            if (!response.ok) {
+                throw new Error((data && data.detail) || 'Login failed');
+            }
+
+            if (!data || !data.access_token) {
+                throw new Error('Login failed');
+            }
             localStorage.setItem('token', data.access_token);
             navigate('/');
         } catch (err: any) {

@@ -1,7 +1,6 @@
 import { useCallback, useRef, useState } from 'react';
 import { useConversation } from '@11labs/react';
 
-import { useAgentStore } from '../stores/agentStore';
 import { useProjectStore } from '../stores/projectStore';
 import { useSessionStore } from '../stores/sessionStore';
 import { fetchClient } from '../lib/api';
@@ -9,12 +8,10 @@ import { fetchClient } from '../lib/api';
 export function useVoice() {
     const [isRecording, setIsRecording] = useState(false);
     const [transcript, setTranscript] = useState('');
+    const [error, setError] = useState<string | null>(null);
     const lastTranscriptRef = useRef('');
-    const sendingRef = useRef(false);
-
-    const { addMessage, setProcessing } = useAgentStore();
     const { activeProject } = useProjectStore();
-    const { activeSessionId, setActiveSessionId, setPendingSession, loadSessions } = useSessionStore();
+    const { activeSessionId } = useSessionStore();
     const formattingRef = useRef(false);
 
     const rawAgentId = (import.meta.env.VITE_ELEVENLABS_AGENT_ID as string | undefined) || '';
@@ -24,57 +21,32 @@ export function useVoice() {
         : undefined;
     const isAvailable = Boolean(agentId);
 
-    const sendTranscript = useCallback(async (text: string) => {
-        if (!text.trim() || !activeProject) return;
-        if (sendingRef.current) return;
-        sendingRef.current = true;
-        setProcessing(true);
-        const messageId = crypto.randomUUID();
-        addMessage({ id: messageId, role: 'user', content: text, timestamp: new Date().toISOString() });
-
-        try {
-            const response = await fetchClient('/api/agent/chat', {
-                method: 'POST',
-                body: JSON.stringify({
-                    message: text,
-                    project_id: activeProject.id,
-                    session_id: activeSessionId || undefined,
-                })
-            });
-
-            addMessage({
-                id: crypto.randomUUID(),
-                role: 'assistant',
-                content: response.content,
-                timestamp: new Date().toISOString()
-            });
-
-            if (response.session_id && response.session_id !== activeSessionId) {
-                setActiveSessionId(response.session_id);
-                setPendingSession(false);
-                loadSessions(activeProject.id);
-            }
-        } finally {
-            sendingRef.current = false;
-            setProcessing(false);
-        }
-    }, [activeProject, activeSessionId, addMessage, loadSessions, setActiveSessionId, setPendingSession, setProcessing]);
-
     const isDebug = import.meta.env.VITE_DEBUG_VOICE === '1';
 
     const shouldTriggerBrief = (text: string) => {
         return /\b(generate|start generating|render|make|create)\b/i.test(text);
     };
 
+    const normalizeTranscript = (text: string) => {
+        return text
+            .replace(/\bz\s*image\b/gi, 'z-image')
+            .replace(/\bgpt\s*image\s*1\b/gi, 'gpt-image-1')
+            .replace(/\bveo\s*3\.1\s*fast\b/gi, 'veo-3.1-fast')
+            .replace(/\bveo\s*3\.1\b/gi, 'veo-3.1')
+            .replace(/\brunway\s*aleph\b/gi, 'runway-aleph')
+            .replace(/\bnano\s*banana\s*pro\b/gi, 'nano-banana-pro');
+    };
+
     const formatBrief = useCallback(async (text: string) => {
         if (!text.trim() || !activeProject) return null;
         if (formattingRef.current) return null;
+        const normalized = normalizeTranscript(text);
         formattingRef.current = true;
         try {
             const response = await fetchClient('/api/voice/format-brief', {
                 method: 'POST',
                 body: JSON.stringify({
-                    transcript: text,
+                    transcript: normalized,
                     project_id: activeProject.id,
                     session_id: activeSessionId || undefined,
                 })
@@ -130,16 +102,29 @@ export function useVoice() {
         if (isDebug) {
             console.log('[Voice] agent id', agentId);
         }
-        setIsRecording(true);
-        setTranscript('');
-        lastTranscriptRef.current = '';
-        await navigator.mediaDevices.getUserMedia({ audio: true });
-        const signed = await fetchClient(`/api/voice/signed-url?agent_id=${encodeURIComponent(agentId)}`);
-        if (isDebug) {
-            console.log('[Voice] signed url', signed?.signed_url ? signed.signed_url : signed);
-        }
-        if (typeof conversation.startSession === 'function') {
-            await conversation.startSession({ signedUrl: signed.signed_url, agentId });
+        try {
+            setError(null);
+            setIsRecording(true);
+            setTranscript('');
+            lastTranscriptRef.current = '';
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                throw new Error('Microphone not supported on this browser');
+            }
+            await navigator.mediaDevices.getUserMedia({ audio: true });
+            const signed = await fetchClient(`/api/voice/signed-url?agent_id=${encodeURIComponent(agentId)}`);
+            if (isDebug) {
+                console.log('[Voice] signed url', signed?.signed_url ? signed.signed_url : signed);
+            }
+            if (typeof conversation.startSession === 'function') {
+                await conversation.startSession({ signedUrl: signed.signed_url, agentId });
+                if (typeof conversation.setVolume === 'function') {
+                    await conversation.setVolume({ volume: 1 });
+                }
+            }
+        } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : 'Voice connection failed';
+            setError(message);
+            setIsRecording(false);
         }
     };
 
@@ -156,6 +141,9 @@ export function useVoice() {
         isRecording,
         transcript,
         isAvailable,
+        status: conversation.status,
+        isSpeaking: conversation.isSpeaking,
+        error,
         startRecording,
         stopRecording
     };

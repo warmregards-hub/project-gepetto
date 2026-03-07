@@ -8,7 +8,6 @@
 - Default if not specified: 1:1
 
 ## Generation Defaults
-- Variants per request: 4 (2 concepts × 2 variants)
 - Default style: photorealistic unless brief specifies otherwise
 - Default image model: gpt-image-1
 - Default video model: veo-3.1-fast

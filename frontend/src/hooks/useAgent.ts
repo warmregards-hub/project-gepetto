@@ -10,6 +10,18 @@ export function useAgent() {
     const { activeSessionId, setActiveSessionId, setPendingSession, loadSessions } = useSessionStore();
     const [error, setError] = useState<string | null>(null);
 
+    const makeId = () => {
+        if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+            return crypto.randomUUID();
+        }
+        if (typeof crypto !== 'undefined' && typeof crypto.getRandomValues === 'function') {
+            const bytes = new Uint8Array(16);
+            crypto.getRandomValues(bytes);
+            return Array.from(bytes).map((b) => b.toString(16).padStart(2, '0')).join('');
+        }
+        return `msg_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+    };
+
     const sendMessage = async (content: string) => {
         if (!activeProject) {
             setError('No active project selected.');
@@ -21,7 +33,7 @@ export function useAgent() {
             setError(null);
 
             const userMsg = {
-                id: crypto.randomUUID(),
+                id: makeId(),
                 role: 'user' as const,
                 content,
                 timestamp: new Date().toISOString()
@@ -49,7 +61,7 @@ export function useAgent() {
             }
 
             addMessage({
-                id: crypto.randomUUID(),
+                id: makeId(),
                 role: 'assistant',
                 content: response.content,
                 timestamp: new Date().toISOString()

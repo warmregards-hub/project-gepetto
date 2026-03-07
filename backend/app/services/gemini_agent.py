@@ -581,6 +581,7 @@ class GeminiAgentService:
                     size=size,
                     callback_url=callback_url,
                     project_id=tool_project,
+                    allow_fallbacks=False,
                 )
 
                 if not generation.get("ok"):
@@ -597,6 +598,7 @@ class GeminiAgentService:
                 pending_tasks: List[str] = []
                 download_links: List[str] = []
                 drive_links: List[str] = []
+                download_errors: List[str] = []
                 urls = generation.get("urls", [])
                 task_ids = generation.get("task_ids") or []
                 if isinstance(task_ids, str):
@@ -605,28 +607,38 @@ class GeminiAgentService:
                     for task_id in task_ids:
                         pending_tasks.append(f"Webhook job pending (Task ID: {task_id})")
                 else:
+                    if not urls:
+                        return {
+                            "ok": False,
+                            "public_message": "Generation returned no assets. Want me to retry?",
+                            "llm_payload": {"status": "error", "message": "No asset URLs returned"},
+                        }
                     batch_id = uuid.uuid4().hex
                     for idx, url in enumerate(urls):
                         if not isinstance(url, str):
                             continue
                         filename = f"gen_{batch_id}_{idx}.jpg"
-                        if url.startswith("mock_image_"):
-                            car_path = Path("/storage/car.png")
-                            if not car_path.exists():
-                                continue
-                            img_bytes = car_path.read_bytes()
-                        else:
-                            img_bytes = await self._download_asset(url)
-                        saved_path = await self.storage.save_file(img_bytes, tool_project, "generated", filename)
-                        drive_info = await self._upload_to_drive(filename, img_bytes)
-                        if drive_info:
-                            self._remove_local_file(saved_path)
-                        relative_name = Path(saved_path).name
-                        local_link = f"/api/storage/download/{tool_project}/generated/{relative_name}"
-                        drive_link = drive_info.get("directUrl") if drive_info else None
-                        download_links.append(drive_link or local_link)
-                        if drive_info and drive_info.get("webViewLink"):
-                            drive_links.append(drive_info["webViewLink"])
+                        try:
+                            if url.startswith("mock_image_"):
+                                car_path = Path("/storage/car.png")
+                                if not car_path.exists():
+                                    raise FileNotFoundError("Mock placeholder missing")
+                                img_bytes = car_path.read_bytes()
+                            else:
+                                img_bytes = await self._download_asset(url)
+                            saved_path = await self.storage.save_file(img_bytes, tool_project, "generated", filename)
+                            drive_info = await self._upload_to_drive(filename, img_bytes)
+                            if drive_info:
+                                self._remove_local_file(saved_path)
+                            relative_name = Path(saved_path).name
+                            local_link = f"/api/storage/download/{tool_project}/generated/{relative_name}"
+                            drive_link = drive_info.get("directUrl") if drive_info else None
+                            download_links.append(drive_link or local_link)
+                            if drive_info and drive_info.get("webViewLink"):
+                                drive_links.append(drive_info["webViewLink"])
+                        except Exception as exc:
+                            download_errors.append(f"{idx}:{exc}")
+                            continue
                         slot_id = f"{batch_id}:{idx}"
                         await self.learning.log_generation(
                             tool_project,
@@ -645,8 +657,14 @@ class GeminiAgentService:
                             prompt=prompts[min(idx, len(prompts) - 1)] if prompts else "",
                         )
 
-                    if download_links:
-                        await self._notify_completion(len(download_links), drive_links[0] if drive_links else download_links[0])
+                    if not download_links:
+                        return {
+                            "ok": False,
+                            "public_message": "Generated assets could not be downloaded. Want me to retry?",
+                            "llm_payload": {"status": "error", "message": "Download failed", "errors": download_errors},
+                        }
+
+                    await self._notify_completion(len(download_links), drive_links[0] if drive_links else download_links[0])
 
                 await self.cost_tracker.log_cost(
                     0.0,
@@ -696,6 +714,7 @@ class GeminiAgentService:
                         model=model,
                         callback_url=callback_url,
                         project_id=tool_project,
+                        allow_fallbacks=False,
                     )
                     if not generation.get("ok"):
                         return {
@@ -990,7 +1009,7 @@ class GeminiAgentService:
             content = message.get("content")
             assistant_text = _extract_text(content).strip()
             if assistant_text:
-                assistant_text = re.sub(r"<system-reminder>.*?</system-reminder>", "", assistant_text, flags=re.DOTALL).strip()
+                assistant_text = re.sub(r"<system-reminder>[\s\S]*?</system-reminder>", "", assistant_text, flags=re.DOTALL).strip()
             if isinstance(assistant_text, str) and "data:image" in assistant_text:
                 self._debug_log("blocked_inline_image_response")
                 messages.append(

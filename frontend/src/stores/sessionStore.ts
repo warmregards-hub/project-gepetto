@@ -15,7 +15,7 @@ interface SessionState {
     setPendingSession: (pending: boolean) => void;
 }
 
-export const useSessionStore = create<SessionState>((set, get) => ({
+export const useSessionStore = create<SessionState>((set) => ({
     sessions: [],
     activeSessionId: null,
     pendingSession: true,

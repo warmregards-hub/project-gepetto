@@ -1,10 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useLayoutStore } from '../../stores/layoutStore';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { CostTracker } from './CostTracker';
 import { useCostStore } from '../../stores/costStore';
 import { useProjectStore } from '../../stores/projectStore';
-import { fetchClient } from '../../lib/api';
 import { ChevronLeft } from 'lucide-react';
 import { Meteors } from './Meteors';
 import { SessionList } from '../agent/SessionList';
@@ -16,45 +15,14 @@ export function Layout() {
     const { activeProject } = useProjectStore();
     const { activeSessionId } = useSessionStore();
     const { isSidebarOpen, setSidebarOpen } = useLayoutStore();
-    const [mockEnabled, setMockEnabled] = useState<boolean | null>(null);
-    const [isToggling, setIsToggling] = useState(false);
 
     useEffect(() => {
-        if (mockEnabled === true) return;
-        if (mockEnabled === null) return;
         const projectId = activeProject?.id ?? null;
         const sessionId = activeSessionId ?? null;
         fetchTotals(projectId, sessionId);
         const interval = setInterval(() => fetchTotals(projectId, sessionId), 10000);
         return () => clearInterval(interval);
-    }, [activeProject, activeSessionId, fetchTotals, mockEnabled]);
-
-    useEffect(() => {
-        const loadMockState = async () => {
-            try {
-                const data = await fetchClient('/api/learning/mock');
-                setMockEnabled(Boolean(data.mock_generation));
-            } catch {
-                setMockEnabled(null);
-            }
-        };
-        loadMockState();
-    }, []);
-
-    const toggleMock = async () => {
-        if (mockEnabled === null) return;
-        const next = !mockEnabled;
-        setIsToggling(true);
-        try {
-            const data = await fetchClient('/api/learning/mock', {
-                method: 'PUT',
-                body: JSON.stringify({ enabled: next })
-            });
-            setMockEnabled(Boolean(data.mock_generation));
-        } finally {
-            setIsToggling(false);
-        }
-    };
+    }, [activeProject, activeSessionId, fetchTotals]);
 
     return (
         <div className="flex h-screen w-full bg-[#FAF9F6] text-zinc-900 overflow-hidden font-serif">
@@ -112,21 +80,7 @@ export function Layout() {
                     </div>
                 </div>
 
-                <div className="p-8 border-t border-zinc-100 bg-white space-y-8">
-                    <div className="flex items-center justify-between text-sm uppercase tracking-widest text-zinc-500 font-black">
-                        <span>Mock Mode</span>
-                        <button
-                            type="button"
-                            onClick={toggleMock}
-                            disabled={mockEnabled === null || isToggling}
-                            className={`px-5 py-2.5 rounded-xl border-2 text-sm font-black transition-all ${mockEnabled
-                                ? 'bg-accent border-accent text-white shadow-lg shadow-accent/20'
-                                : 'bg-white border-zinc-100 text-zinc-300 hover:border-zinc-300'
-                                } ${isToggling ? 'opacity-60 cursor-wait' : ''}`}
-                        >
-                            {mockEnabled === null ? '...' : mockEnabled ? 'ON' : 'OFF'}
-                        </button>
-                    </div>
+                <div className="p-8 border-t border-zinc-100 bg-white">
                     <CostTracker />
                 </div>
             </aside>

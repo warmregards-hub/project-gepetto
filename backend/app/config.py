@@ -14,6 +14,9 @@ class Settings(BaseSettings):
     # external APIs
     kie_api_key: str
     kie_base_url: str = "https://api.kie.ai"
+    kie_chat_model: str = "gemini-2.5-flash"
+    kie_chat_reasoning: str = "low"
+    kie_chat_temperature: float = 0.2
     elevenlabs_api_key: str = ""
     elevenlabs_agent_id: str = ""
     elevenlabs_voice_id: str = ""
@@ -31,7 +34,7 @@ class Settings(BaseSettings):
     admin_username: str = "admin"
     admin_password: str = "gepetto"
     storage_path: str = "/storage"
-    mock_generation: bool = True
+    mock_generation: bool = False
     endpoint_registry_path: str = "/app/endpoint_registry.json"
     model_cache_path: str = "/app/model_cache.json"
 

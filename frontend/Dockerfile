@@ -10,8 +10,11 @@ RUN npm install
 # Copy source code
 COPY . .
 
+# Build for production preview
+RUN npm run build
+
 # Expose port
 EXPOSE 5173
 
-# Start development server
-CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
+# Start preview server
+CMD ["npm", "run", "preview", "--", "--host", "0.0.0.0", "--port", "5173"]

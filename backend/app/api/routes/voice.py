@@ -53,16 +53,31 @@ async def format_brief(
     if not request.transcript.strip():
         raise HTTPException(status_code=400, detail="Transcript is empty")
 
-    system_prompt = (
-        "You are a creative brief formatter. Convert a raw conversation transcript into a clean, actionable brief. "
-        "Only include details about the creative request. Exclude small talk, meta commentary, or references to the agent. "
-        "Return plain text only. Do not include a preamble. "
-        "Include only sections that have concrete information. "
-        "Use these section titles when applicable: Summary, Deliverables, Specs, Style/Creative Direction, Models/Tools, "
-        "Constraints/Do-Not. "
-        "If critical information is missing, omit it instead of calling it out. "
-        "Keep it concise."
-    )
+    brainstorm_mode = "brainstorm" in request.transcript.lower()
+    if brainstorm_mode:
+        system_prompt = (
+            "You are a creative brief formatter. Convert a raw conversation transcript into a clean, actionable brief. "
+            "Only include details about the creative request. Exclude small talk, meta commentary, or references to the agent. "
+            "Return plain text only. Do not include a preamble. "
+            "Include only sections that have concrete information. "
+            "Use these section titles when applicable: Summary, Deliverables, Specs, Style/Creative Direction, Models/Tools, "
+            "Constraints/Do-Not, Questions. "
+            "If a model or tool is explicitly mentioned (e.g., z-image, gpt-image-1, veo-3.1), always include it under Models/Tools. "
+            "Under Questions, ask targeted clarifying questions based on the transcript. "
+            "Keep it concise."
+        )
+    else:
+        system_prompt = (
+            "You are a creative brief formatter. Convert a raw conversation transcript into a clean, actionable brief. "
+            "Only include details about the creative request. Exclude small talk, meta commentary, or references to the agent. "
+            "Return plain text only. Do not include a preamble. "
+            "Include only sections that have concrete information. "
+            "Use these section titles when applicable: Summary, Deliverables, Specs, Style/Creative Direction, Models/Tools, "
+            "Constraints/Do-Not. "
+            "If a model or tool is explicitly mentioned (e.g., z-image, gpt-image-1, veo-3.1), always include it under Models/Tools. "
+            "Do not ask questions or call out missing info. "
+            "Keep it concise."
+        )
 
     messages = [
         {"role": "system", "content": system_prompt},

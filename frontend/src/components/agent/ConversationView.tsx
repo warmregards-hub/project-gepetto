@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useAgentStore } from '../../stores/agentStore';
 import { useProjectStore } from '../../stores/projectStore';
-import { SkeletonMessage } from '../shared/LoadingStates';
 import ReactMarkdown from 'react-markdown';
 import { API_BASE_URL } from '../../lib/constants';
 import { Check, X, BookmarkPlus } from 'lucide-react';
@@ -39,6 +38,10 @@ export function ConversationView() {
                 }, segment.text);
             })
             .join('');
+    };
+
+    const stripSystemReminders = (content: string) => {
+        return content.replace(/<system-reminder>[\s\S]*?<\/system-reminder>/gi, '').trim();
     };
 
     const normalizeImageSrc = (rawSrc: string) => {
@@ -267,7 +270,7 @@ export function ConversationView() {
                                 }
                             }}
                         >
-                            {formatProjectNames(msg.content)}
+                            {formatProjectNames(stripSystemReminders(msg.content))}
                         </ReactMarkdown>
                     </div>
                 </div>

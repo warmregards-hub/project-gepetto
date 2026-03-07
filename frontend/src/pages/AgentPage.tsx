@@ -13,7 +13,7 @@ import { Menu } from 'lucide-react';
 
 export function AgentPage() {
     const { sendMessage, error } = useAgent();
-    const { isRecording, isAvailable, startRecording, stopRecording } = useVoice();
+    const { isRecording, isAvailable, status, isSpeaking, error: voiceError, startRecording, stopRecording } = useVoice();
     const { activeProject, setProjects, setActiveProject } = useProjectStore();
     const { startNewSession } = useSessionStore();
     const { setSidebarOpen } = useLayoutStore();
@@ -82,7 +82,15 @@ export function AgentPage() {
             )}
 
             <footer className="flex-none p-4 md:p-8 border-t border-zinc-100 bg-zinc-50/50 backdrop-blur-md min-h-[100px] md:min-h-[120px]">
-                <div className="max-w-5xl mx-auto flex items-end gap-3 md:gap-6">
+                <div className="max-w-5xl mx-auto flex flex-col gap-2">
+                    {(isRecording || voiceError) && (
+                        <div className="text-xs font-black uppercase tracking-widest text-zinc-400">
+                            Voice {status === 'connected' ? 'live' : status}
+                            {isSpeaking ? ' · AI speaking' : ''}
+                            {voiceError ? ` · ${voiceError}` : ''}
+                        </div>
+                    )}
+                    <div className="flex items-end gap-3 md:gap-6">
                     <VoiceInput
                         isRecording={isRecording}
                         onStart={startRecording}
@@ -97,6 +105,7 @@ export function AgentPage() {
                                 onChange={setDraftText}
                             />
                         </div>
+                    </div>
                 </div>
             </footer>
         </div>
