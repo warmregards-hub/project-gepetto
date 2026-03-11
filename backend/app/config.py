@@ -17,6 +17,8 @@ class Settings(BaseSettings):
     kie_chat_model: str = "gemini-2.5-flash"
     kie_chat_reasoning: str = "low"
     kie_chat_temperature: float = 0.2
+    kie_trace_enabled: bool = True
+    kie_trace_path: str = "/app/kie_trace.jsonl"
     elevenlabs_api_key: str = ""
     elevenlabs_agent_id: str = ""
     elevenlabs_voice_id: str = ""

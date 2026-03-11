@@ -1,7 +1,6 @@
 import asyncio
 import json
 import uuid
-import re
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -20,9 +19,6 @@ from app.models.conversation import Conversation
 
 
 class GeminiAgentService:
-    MAX_TOOL_CALLS = 20
-    MAX_LOOP_STEPS = 12
-
     def __init__(self, db_session, session_id: Optional[str] = None):
         self.kie_client = KieClient()
         self.storage = StorageService()
@@ -58,11 +54,12 @@ class GeminiAgentService:
                     "parameters": {
                         "type": "object",
                         "properties": {
-                            "prompts": {"type": "array", "items": {"type": "string"}, "description": "Array of detailed prompts. Each prompt generates one distinct image."},
-                            "model": {"type": "string", "description": "The exact API name of the image model to use."},
-                            "size": {"type": "string", "description": "Aspect ratio/resolution (e.g. 1024x1024, 1024x1792)"},
+                            "prompts": {"type": "array", "items": {"type": "string"}},
+                            "model": {"type": "string"},
+                            "size": {"type": "string"},
                             "project_id": {"type": "string"},
                             "style_overrides": {"type": "object"},
+                            "confirm_plan": {"type": "boolean"},
                         },
                         "required": ["prompts", "project_id", "model"],
                     },
@@ -80,6 +77,7 @@ class GeminiAgentService:
                             "model": {"type": "string"},
                             "project_id": {"type": "string"},
                             "reference_images": {"type": "array", "items": {"type": "string"}},
+                            "confirm_plan": {"type": "boolean"},
                         },
                         "required": ["prompts", "project_id", "model"],
                     },
@@ -259,257 +257,363 @@ class GeminiAgentService:
             response.raise_for_status()
             return response.content
 
-    def _extract_explicit_model(self, message: str) -> str | None:
-        text = message.strip()
+    def _planner_system_prompt(self, project_id: str, preferences_md: str, learned_patterns: Dict[str, Any]) -> str:
+        learned_blob = json.dumps(learned_patterns, ensure_ascii=False)
+        template = """You are the Geppetto orchestration brain. Return a single JSON object and nothing else. Do not wrap in markdown or code fences.
+
+Valid response types:
+1) {{"action":"question", "message":"..."}}
+2) {{"action":"plan", "kind":"image"|"video", "project_id":"...", "confirm":true|false, "batches":[{{"model":"...", "prompts":[...], "count":1, "size":"...", "ratio":"..."}}]}}
+3) {{"action":"chat", "message":"..."}}
+
+If you need missing info (model, count, ratio, etc.), return action=question.
+If you can build a plan, return action=plan.
+If the user is just chatting, return action=chat.
+
+If a pending plan exists in history, it is inside <plan>{{...}}</plan>. When the user gives ANY affirmative response (e.g., "looks good", "send it", "yes", "do it", "confirm"), you MUST return action=plan with confirm=true and copy the plan EXACTLY (including batches). Do not modify prompts.
+If there is no pending plan in history, confirm MUST be false.
+If the user requests edits or specifies changes, return action=plan with confirm=false and generate a NEW plan.
+
+Multi-model requests:
+- When the user asks for the same prompt across multiple models, return one batch per model.
+- There is no limitation on using multiple models in a single plan. Do not invent restrictions.
+
+Plan requirements:
+- prompts must be production-quality and highly enriched. Include subject, setting, lighting, camera/lens, mood, composition.
+- IMPORTANT: You MUST strictly integrate the "Project preferences" and "Learned patterns" provided below into the final prompt text.
+- do not introduce new entities or locations not implied by the request.
+- prompts array length must equal count for each batch.
+- for image batches, include BOTH size and ratio.
+- use size values: 1024x1024 (1:1), 1024x1792 (9:16), 1792x1024 (16:9), 1024x768 (4:3), 768x1024 (3:4).
+- never claim a limitation unless it is a real technical constraint or API error.
+
+Current project_id: {project_id}
+
+Project preferences (apply):
+{preferences_md}
+
+Learned patterns (apply):
+{learned_blob}
+"""
+        return template.format(
+            project_id=project_id,
+            preferences_md=preferences_md,
+            learned_blob=learned_blob,
+        )
+
+    def _extract_text(self, content: Any) -> str:
+        if isinstance(content, str):
+            return content
+        if isinstance(content, list):
+            parts: List[str] = []
+            for item in content:
+                if isinstance(item, dict) and isinstance(item.get("text"), str):
+                    parts.append(item["text"])
+                elif isinstance(item, dict) and isinstance(item.get("content"), str):
+                    parts.append(item["content"])
+                elif isinstance(item, str):
+                    parts.append(item)
+            return "".join(parts)
+        return ""
+
+    def _parse_llm_payload(self, content: Any) -> Optional[Dict[str, Any]]:
+        text = self._extract_text(content).strip()
         if not text:
             return None
-        lowered = text.lower()
-        patterns = [r"\busing\s+([^\n\r\.,;]+)", r"\buse\s+([^\n\r\.,;]+)", r"\bwith\s+([^\n\r\.,;]+)"]
-        for pattern in patterns:
-            match = re.search(pattern, lowered, flags=re.IGNORECASE)
-            if not match:
-                continue
-            candidate = match.group(1).strip()
-            candidate = re.split(r"[,.;]", candidate, maxsplit=1)[0].strip()
-            candidate = re.split(r"\b(just|only|please|do|and|for|to|that|like)\b", candidate, maxsplit=1)[0].strip()
-            candidate = re.sub(r"\bmodel\b", "", candidate, flags=re.IGNORECASE).strip()
-            candidate = candidate.strip("\"'()[]{} ")
-            if candidate:
-                return candidate
+        if text.startswith("```"):
+            lines = text.splitlines()
+            if len(lines) >= 3:
+                text = "\n".join(lines[1:-1]).strip()
+        try:
+            payload = json.loads(text)
+            if isinstance(payload, dict):
+                return payload
+        except Exception:
+            pass
+        start = text.find("{")
+        end = text.rfind("}")
+        if start != -1 and end != -1 and end > start:
+            try:
+                payload = json.loads(text[start : end + 1])
+                if isinstance(payload, dict):
+                    return payload
+            except Exception:
+                return None
         return None
 
-    def _coerce_model_name(self, name: str) -> str:
-        cleaned = name.strip().strip("\"'()[]{} ")
-        cleaned = re.sub(r"\s+", "-", cleaned)
-        cleaned = re.sub(r"-+", "-", cleaned)
-        return cleaned
+    def _validate_llm_payload(self, payload: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        action = payload.get("action")
+        if action not in {"question", "plan", "chat"}:
+            return None
+        return payload
 
-    def _extract_rules(self, preferences_md: str) -> Dict[str, str]:
-        rules: Dict[str, str] = {}
-        for line in preferences_md.splitlines():
-            line = line.strip()
-            if not line.startswith("-"):
-                continue
-            payload = line.lstrip("- ").strip()
-            if ":" not in payload:
-                continue
-            key, value = payload.split(":", 1)
-            key = key.strip().lower()
-            value = value.strip()
-            if key:
-                rules[key] = value
-        return rules
+    def _normalize_plan(self, payload: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        if payload.get("action") != "plan":
+            return None
+        kind = payload.get("kind")
+        if kind not in {"image", "video"}:
+            return None
+        project_id = payload.get("project_id")
+        if not isinstance(project_id, str) or not project_id.strip():
+            return None
+        confirm = bool(payload.get("confirm"))
 
-    def _ratio_to_size(self, ratio: str) -> str:
-        normalized = ratio.strip()
-        if normalized in ("9:16", "9x16"):
-            return "1024x1792"
-        if normalized in ("16:9", "16x9"):
-            return "1792x1024"
-        if normalized in ("1:1", "1x1"):
-            return "1024x1024"
-        if normalized in ("4:3", "4x3"):
-            return "1024x768"
-        if normalized in ("3:4", "3x4"):
-            return "768x1024"
-        return "1024x1024"
+        batches = payload.get("batches")
+        normalized_batches: List[Dict[str, Any]] = []
 
-    def _apply_preference_rules(self, prompts: List[str], size: str, rules: Dict[str, str]) -> tuple[List[str], str]:
-        updated_size = size
-        style_hints: List[str] = []
+        if batches is None:
+            model = payload.get("model")
+            prompts = payload.get("prompts")
+            count = payload.get("count")
+            if not isinstance(model, str) or not model.strip():
+                return None
+            if not isinstance(prompts, list) or not prompts:
+                return None
+            if not isinstance(count, int) or count != len(prompts):
+                return None
+            for prompt in prompts:
+                if not isinstance(prompt, str) or not prompt.strip():
+                    return None
+            batch: Dict[str, Any] = {
+                "model": model,
+                "prompts": prompts,
+                "count": count,
+            }
+            if kind == "image":
+                size = payload.get("size")
+                ratio = payload.get("ratio")
+                if not isinstance(size, str) or not size.strip():
+                    return None
+                if not isinstance(ratio, str) or not ratio.strip():
+                    return None
+                batch["size"] = size
+                batch["ratio"] = ratio
+            normalized_batches.append(batch)
+        else:
+            if not isinstance(batches, list) or not batches:
+                return None
+            for batch in batches:
+                if not isinstance(batch, dict):
+                    return None
+                model = batch.get("model")
+                prompts = batch.get("prompts")
+                count = batch.get("count")
+                if not isinstance(model, str) or not model.strip():
+                    return None
+                if not isinstance(prompts, list) or not prompts:
+                    return None
+                if not isinstance(count, int) or count != len(prompts):
+                    return None
+                for prompt in prompts:
+                    if not isinstance(prompt, str) or not prompt.strip():
+                        return None
+                normalized_batch: Dict[str, Any] = {
+                    "model": model,
+                    "prompts": prompts,
+                    "count": count,
+                }
+                if kind == "image":
+                    size = batch.get("size") or payload.get("size")
+                    ratio = batch.get("ratio") or payload.get("ratio")
+                    if not isinstance(size, str) or not size.strip():
+                        return None
+                    if not isinstance(ratio, str) or not ratio.strip():
+                        return None
+                    normalized_batch["size"] = size
+                    normalized_batch["ratio"] = ratio
+                normalized_batches.append(normalized_batch)
 
-        base_aspect = rules.get("aspect_ratio") or rules.get("aspect ratio")
-        if base_aspect:
-            updated_size = self._ratio_to_size(base_aspect)
-
-        selfie_aspect = rules.get("selfie.aspect_ratio") or rules.get("selfies.aspect_ratio")
-        if selfie_aspect:
-            if any("selfie" in p.lower() for p in prompts):
-                updated_size = self._ratio_to_size(selfie_aspect)
-
-        style_value = rules.get("style")
-        if style_value:
-            style_hints.append(style_value)
-        for key, value in rules.items():
-            if key.startswith("style."):
-                style_hints.append(value or key.replace("style.", ""))
-
-        if style_hints:
-            hint = ", ".join([h for h in style_hints if h])
-            if hint:
-                prompts = [f"{p.rstrip()} {hint}" for p in prompts]
-
-        return prompts, updated_size
-
-    def _apply_learned_patterns(self, prompts: List[str], patterns: Dict[str, Any]) -> List[str]:
-        additions = patterns.get("recommended_prompt_additions", []) if isinstance(patterns, dict) else []
-        exclusions = patterns.get("recommended_prompt_exclusions", []) if isinstance(patterns, dict) else []
-
-        updated_prompts: List[str] = []
-        for prompt in prompts:
-            updated = prompt
-            for phrase in additions:
-                if isinstance(phrase, str) and phrase.strip() and phrase.lower() not in updated.lower():
-                    updated = f"{updated.rstrip()} {phrase.strip()}"
-            for phrase in exclusions:
-                if isinstance(phrase, str) and phrase.strip():
-                    updated = re.sub(re.escape(phrase), "", updated, flags=re.IGNORECASE)
-            updated_prompts.append(" ".join(updated.split()))
-        return updated_prompts
-
-    def _default_prompt_from_hint(self, text: str) -> str:
-        lowered = text.lower()
-        if "mirror selfie" in lowered:
-            return (
-                "Mirror selfie of a person in a softly lit room, casual outfit, "
-                "natural light, handheld feel, authentic UGC look"
-            )
-        if "selfie" in lowered:
-            return (
-                "Selfie of a person in a softly lit room, casual outfit, natural light, "
-                "handheld feel, authentic UGC look"
-            )
-        if "product" in lowered:
-            return "Product shot on a clean surface, natural light, crisp focus"
-        if "portrait" in lowered:
-            return "Portrait of a person, natural light, candid expression, authentic feel"
-        return "Candid UGC photo of a person in a cozy indoor space, natural light, handheld feel"
-
-    def _rewrite_prompt(self, prompt: str, model: str | None) -> str:
-        if not prompt:
-            return prompt
-        original = prompt
-        lowered = original.lower()
-        instruction_markers = [
-            "please",
-            "can you",
-            "could you",
-            "generate",
-            "create",
-            "make",
-            "do",
-            "with",
-            "using",
-        ]
-        has_instruction = any(marker in lowered for marker in instruction_markers)
-        if model and model.lower() in lowered:
-            has_instruction = True
-
-        cleaned = original
-        if model:
-            cleaned = re.sub(re.escape(model), "", cleaned, flags=re.IGNORECASE)
-        cleaned = re.sub(r"\b(using|use|with)\s+[^\n\r\.,;]+", "", cleaned, flags=re.IGNORECASE)
-        cleaned = re.sub(r"\b\d+\s*(variations|variants|vairations)\b", "", cleaned, flags=re.IGNORECASE)
-        cleaned = re.sub(r"\b\d+\s*(images|image|pics|pic|frames|frame)\b", "", cleaned, flags=re.IGNORECASE)
-        cleaned = re.sub(r"\bplease\b", "", cleaned, flags=re.IGNORECASE)
-        cleaned = re.sub(r"\b(can|could)\s+you\b", "", cleaned, flags=re.IGNORECASE)
-        cleaned = re.sub(r"\b(generate|create|make|do)\b", "", cleaned, flags=re.IGNORECASE)
-        cleaned = " ".join(cleaned.split())
-
-        improv_markers = ["whatever", "anything", "make it up", "surprise me", "you choose", "free to do"]
-        if any(marker in lowered for marker in improv_markers):
-            return self._default_prompt_from_hint(original)
-
-        if len(cleaned.split()) < 4 or has_instruction:
-            if "selfie" in cleaned.lower() or "mirror" in cleaned.lower():
-                return self._default_prompt_from_hint(cleaned)
-            if cleaned:
-                return f"{cleaned}, natural light, authentic UGC look"
-            return self._default_prompt_from_hint(original)
-
-        return cleaned
-
-    def _detect_scope(self, message: str, active_project: str) -> tuple[str, str | None]:
-        lowered = message.lower()
-        project_map = {
-            "drew": "drew-5trips",
-            "5trips": "drew-5trips",
-            "drew-5trips": "drew-5trips",
-            "betway": "betway-f1",
-            "betway-f1": "betway-f1",
+        return {
+            "action": "plan",
+            "kind": kind,
+            "project_id": project_id,
+            "confirm": confirm,
+            "batches": normalized_batches,
         }
-        for key, pid in project_map.items():
-            if key in lowered:
-                return "project", pid
-        if "this project" in lowered or "this campaign" in lowered or "this client" in lowered or "here" in lowered:
-            return "project", active_project
-        global_markers = ["always", "never", "globally", "in general", "for all projects", "standard", "default"]
-        if any(marker in lowered for marker in global_markers):
-            return "global", None
-        return "session", None
-
-    def _extract_preference_updates(self, message: str, active_project: str) -> tuple[str | None, Dict[str, str]]:
-        lowered = message.lower()
-        intent_markers = ["should", "must", "only", "never", "always", "avoid", "prefer", "more", "less"]
-        if not any(marker in lowered for marker in intent_markers):
-            return None, {}
-
-        scope, scope_project = self._detect_scope(message, active_project)
-        updates: Dict[str, str] = {}
-
-        ratio_match = re.search(r"\b(\d{1,2}:\d{1,2})\b", lowered)
-        if ratio_match:
-            ratio = ratio_match.group(1)
-            if "selfie" in lowered or "selfies" in lowered:
-                updates["selfie.aspect_ratio"] = ratio
-            else:
-                updates["aspect_ratio"] = ratio
-
-        if "lofi" in lowered or "lo-fi" in lowered:
-            updates["style"] = "lofi"
-        if "too polished" in lowered:
-            updates["style"] = "lofi"
-        if "grain" in lowered or "grainy" in lowered:
-            updates["style.grain"] = "true"
-
-        if not updates:
-            return None, {}
-
-        if scope == "global":
-            return "global", updates
-        if scope == "project":
-            return scope_project or active_project, updates
-        return None, {}
-
-    def _is_image_request(self, message: str) -> bool:
-        lowered = message.lower()
-        if "video" in lowered or "clip" in lowered:
-            return False
-        keywords = ["image", "photo", "pic", "ugc", "render", "shot", "frame", "generate", "create", "make", "selfie", "portrait"]
-        return any(word in lowered for word in keywords)
-
-    def _infer_count(self, message: str) -> int:
-        digit_match = re.search(r"\b(\d+)\b", message)
-        if digit_match:
-            try:
-                return max(1, int(digit_match.group(1)))
-            except Exception:
-                return 1
-        return 1
-
-    def _infer_size(self, message: str) -> str:
-        lowered = message.lower()
-        if "ugc" in lowered:
-            return "1024x1792"
-        if "cinematic" in lowered:
-            return "1792x1024"
-        if "product" in lowered:
-            return "1024x1024"
-        return "1024x1024"
-
-    def _normalize_model_name(self, name: str) -> str:
-        return re.sub(r"[^a-z0-9]", "", name.lower())
 
     def _render_links_message(self, links: List[str], pending: List[str]) -> str:
         if links:
             body = "\n".join([f"![variant_{idx}]({link})" for idx, link in enumerate(links)])
-            content = f"Generated {len(links)}.\n\n{body}"
+            content = f"Generated {len(links)}.\\n\\n{body}"
             if pending:
-                content += "\n\nPending callbacks:\n" + "\n".join(pending)
+                content += "\\n\\nPending callbacks:\\n" + "\\n".join(pending)
             return content
         if pending:
-            return "Generation submitted and waiting for callback.\n\n" + "\n".join(pending)
+            return "Generation submitted and waiting for callback.\\n\\n" + "\\n".join(pending)
         return "Generation returned no outputs."
+
+    def _render_plan_message(self, plan: Dict[str, Any]) -> str:
+        batches = plan.get("batches") or []
+        lines = ["Proposed generation:", "", f"Total: {len(batches)}"]
+
+        for idx, batch in enumerate(batches):
+            if idx > 0:
+                lines.append("")
+                lines.append("---")
+                lines.append("")
+            lines.append(f"- Model: {batch.get('model')}")
+            if plan.get("kind") == "image":
+                lines.append(f"- Aspect ratio: {batch.get('ratio')}")
+                lines.append(f"- Size: {batch.get('size')}")
+            lines.append("- Prompts (verbatim):")
+            for prompt in batch.get("prompts") or []:
+                lines.append(f"  {prompt}")
+
+        lines.append("")
+        lines.append("Reply with any confirmation (e.g. 'looks good', 'send it') to generate, or send edits.")
+        plan_blob = json.dumps(plan, ensure_ascii=False)
+        lines.append(f"<plan>{plan_blob}</plan>")
+        return "\n".join(lines)
+
+
+    async def _execute_confirmed_plan(self, plan: Dict[str, Any], project_id: str) -> Dict[str, Any]:
+        batches = plan.get("batches") or []
+        tasks = []
+        for batch in batches:
+            tool_name = "generate_images" if plan.get("kind") == "image" else "generate_videos"
+            args: Dict[str, Any] = {
+                "prompts": batch.get("prompts") or [],
+                "model": batch.get("model"),
+                "project_id": plan.get("project_id") or project_id,
+                "confirm_plan": True,
+            }
+            if plan.get("kind") == "image":
+                args["size"] = batch.get("size")
+            tool_call = {
+                "id": f"confirm_generate_{datetime.now(timezone.utc).timestamp()}_{uuid.uuid4().hex}",
+                "type": "function",
+                "function": {
+                    "name": tool_name,
+                    "arguments": json.dumps(args),
+                },
+            }
+            tasks.append(self.execute_tool(tool_call, project_id))
+
+        results = await asyncio.gather(*tasks)
+        download_links: List[str] = []
+        pending_tasks: List[str] = []
+        failures: List[Dict[str, Any]] = []
+
+        for result in results:
+            if result.get("ok"):
+                download_links.extend(result.get("download_links", []))
+                pending_tasks.extend(result.get("pending_tasks", []))
+            else:
+                failures.append(result)
+
+        if download_links or pending_tasks:
+            content = self._render_links_message(download_links, pending_tasks)
+            if failures:
+                content += "\n\nSome batches failed. Want me to retry the failed ones?"
+            return {
+                "content": content,
+                "tool_calls_executed": len(results),
+                "cost_usd": 0.0,
+            }
+
+        if failures:
+            content = failures[0].get("public_message") or "Generation failed."
+            return {
+                "content": content,
+                "tool_calls_executed": len(results),
+                "cost_usd": 0.0,
+            }
+
+        return {
+            "content": "Generation returned no outputs.",
+            "tool_calls_executed": len(results),
+            "cost_usd": 0.0,
+        }
+
+    async def process_chat(self, user_message: str, project_id: str, conversation_history: List[Dict[str, str]]):
+        await self._broadcast({"type": "progress", "data": {"task": "thinking", "progress": 5}})
+        prefs_data = await self.learning.get_preferences(project_id)
+        preferences_md = prefs_data.get("preferences_md", "")
+        learned_patterns = prefs_data.get("learned_patterns", {})
+
+        pending_plan = False
+        for entry in reversed(conversation_history or []):
+            if entry.get("role") != "assistant":
+                continue
+            content = entry.get("content") or ""
+            if "<plan>" in content:
+                pending_plan = True
+            break
+
+        system_prompt = self._planner_system_prompt(project_id, preferences_md, learned_patterns)
+        messages: List[Dict[str, Any]] = [{"role": "system", "content": system_prompt}]
+        for entry in conversation_history or []:
+            role = entry.get("role")
+            content = entry.get("content")
+            if role in {"user", "assistant", "system"} and isinstance(content, str):
+                messages.append({"role": role, "content": content})
+        messages.append({"role": "user", "content": user_message})
+
+        response = await self.kie_client.chat_completion(messages)
+        try:
+            credits = response.get("credits_consumed") if isinstance(response, dict) else None
+            if isinstance(credits, (int, float)) and credits > 0:
+                await self.cost_tracker.log_cost(
+                    float(credits),
+                    "kie-chat",
+                    "gemini-2.5-flash",
+                    project_id,
+                    "Agent planning completion",
+                    session_id=self.session_id,
+                )
+        except Exception:
+            pass
+
+        content = response.get("choices", [{}])[0].get("message", {}).get("content", "")
+        payload = self._parse_llm_payload(content)
+        payload = self._validate_llm_payload(payload or {})
+        if not payload:
+            await self._broadcast({"type": "progress", "data": {"task": "complete", "progress": 100}})
+            return {
+                "content": "I had trouble understanding that. Please try again.",
+                "tool_calls_executed": 0,
+                "cost_usd": 0.0,
+            }
+
+        action = payload.get("action")
+        if action == "question":
+            await self._broadcast({"type": "progress", "data": {"task": "complete", "progress": 100}})
+            return {
+                "content": payload.get("message") or "I need a bit more detail to proceed.",
+                "tool_calls_executed": 0,
+                "cost_usd": 0.0,
+            }
+
+        if action == "chat":
+            await self._broadcast({"type": "progress", "data": {"task": "complete", "progress": 100}})
+            return {
+                "content": payload.get("message") or "",
+                "tool_calls_executed": 0,
+                "cost_usd": 0.0,
+            }
+
+        plan = self._normalize_plan(payload)
+        if not plan:
+            await self._broadcast({"type": "progress", "data": {"task": "complete", "progress": 100}})
+            return {
+                "content": "I couldn't build a valid plan. Please try rephrasing.",
+                "tool_calls_executed": 0,
+                "cost_usd": 0.0,
+            }
+
+        if bool(plan.get("confirm")) and pending_plan:
+            await self._broadcast({"type": "progress", "data": {"task": "running", "progress": 70}})
+            result = await self._execute_confirmed_plan(plan, project_id)
+            await self._broadcast({"type": "progress", "data": {"task": "complete", "progress": 100}})
+            return result
+
+        plan_message = self._render_plan_message(plan)
+        await self._broadcast({"type": "progress", "data": {"task": "complete", "progress": 100}})
+        return {
+            "content": plan_message,
+            "tool_calls_executed": 0,
+            "cost_usd": 0.0,
+        }
 
     async def execute_tool(self, tool_call: Dict[str, Any], project_id: str) -> Dict[str, Any]:
         name = tool_call.get("function", {}).get("name")
@@ -534,46 +638,46 @@ class GeminiAgentService:
                 return {"ok": True, "llm_payload": result}
 
             if name == "generate_images":
-                prompts = args.get("prompts") or []
-                model = args.get("model")
-                if isinstance(model, str) and " " in model:
-                    model = self._coerce_model_name(model)
-                size = args.get("size") or "1024x1024"
-                if isinstance(size, str) and ":" in size:
-                    ratio = size.strip()
-                    if ratio == "9:16":
-                        size = "1024x1792"
-                    elif ratio == "16:9":
-                        size = "1792x1024"
-                    elif ratio == "1:1":
-                        size = "1024x1024"
-                tool_project = args.get("project_id") or project_id or "default"
-                if settings.environment != "development":
-                    callback_url = self._build_callback_url(settings.backend_url, tool_project)
-                if not prompts:
-                    prompts = [""]
-
-                if len(prompts) == 1 and isinstance(prompts[0], str):
-                    variations_match = re.search(r"\b(\d+)\s*(variations|variants|vairations)\b", prompts[0], flags=re.IGNORECASE)
-                    if variations_match:
-                        count = max(1, int(variations_match.group(1)))
-                        cleaned_prompt = re.sub(r"\b\d+\s*(variations|variants|vairations)\b", "", prompts[0], flags=re.IGNORECASE)
-                        cleaned_prompt = " ".join(cleaned_prompt.split())
-                        prompts = [cleaned_prompt or prompts[0] for _ in range(count)]
-
-                prompts = [self._rewrite_prompt(p, model) for p in prompts]
-
-                if not model:
+                confirm_plan = bool(args.get("confirm_plan"))
+                if not confirm_plan:
                     return {
                         "ok": False,
-                        "public_message": "I need a model name before I can generate images. Which model should I use?",
-                        "llm_payload": {"status": "error", "message": "Missing model"},
+                        "public_message": "Please confirm the plan before I generate.",
+                        "llm_payload": {"status": "error", "message": "Missing confirmation"},
                     }
 
-                prefs_data = await self.learning.get_preferences(tool_project)
-                rules = self._extract_rules(prefs_data.get("preferences_md", ""))
-                prompts, size = self._apply_preference_rules(prompts, size, rules)
-                prompts = self._apply_learned_patterns(prompts, prefs_data.get("learned_patterns", {}))
+                prompts = args.get("prompts")
+                model = args.get("model")
+                size = args.get("size")
+                tool_project = args.get("project_id") or project_id
+
+                if not tool_project:
+                    return {
+                        "ok": False,
+                        "public_message": "Missing project scope.",
+                        "llm_payload": {"status": "error", "message": "Missing project_id"},
+                    }
+                if not isinstance(prompts, list) or not prompts:
+                    return {
+                        "ok": False,
+                        "public_message": "Missing prompts for generation.",
+                        "llm_payload": {"status": "error", "message": "Missing prompts"},
+                    }
+                if not isinstance(model, str) or not model.strip():
+                    return {
+                        "ok": False,
+                        "public_message": "Missing model name.",
+                        "llm_payload": {"status": "error", "message": "Missing model"},
+                    }
+                if not isinstance(size, str) or not size.strip():
+                    return {
+                        "ok": False,
+                        "public_message": "Missing size for image generation.",
+                        "llm_payload": {"status": "error", "message": "Missing size"},
+                    }
+
+                if settings.environment != "development":
+                    callback_url = self._build_callback_url(settings.backend_url, tool_project)
 
                 generation = await self.kie_client.generate_images(
                     prompts=prompts,
@@ -592,7 +696,11 @@ class GeminiAgentService:
                     return {
                         "ok": False,
                         "public_message": generation.get("message") or "I couldn't reach that model. Want me to try another?",
-                        "llm_payload": {"status": "error", "message": generation.get("message"), "errors": generation.get("errors")},
+                        "llm_payload": {
+                            "status": "error",
+                            "message": generation.get("message"),
+                            "errors": generation.get("errors"),
+                        },
                     }
 
                 pending_tasks: List[str] = []
@@ -688,20 +796,39 @@ class GeminiAgentService:
                 }
 
             if name == "generate_videos":
-                prompts = args.get("prompts") or []
-                model = args.get("model")
-                tool_project = args.get("project_id") or project_id or "default"
-                if settings.environment != "development":
-                    callback_url = self._build_callback_url(settings.backend_url, tool_project)
-                if not prompts:
-                    prompts = [""]
-
-                if not model:
+                confirm_plan = bool(args.get("confirm_plan"))
+                if not confirm_plan:
                     return {
                         "ok": False,
-                        "public_message": "I need a model name before I can generate videos. Which model should I use?",
+                        "public_message": "Please confirm the plan before I generate.",
+                        "llm_payload": {"status": "error", "message": "Missing confirmation"},
+                    }
+
+                prompts = args.get("prompts")
+                model = args.get("model")
+                tool_project = args.get("project_id") or project_id
+
+                if not tool_project:
+                    return {
+                        "ok": False,
+                        "public_message": "Missing project scope.",
+                        "llm_payload": {"status": "error", "message": "Missing project_id"},
+                    }
+                if not isinstance(prompts, list) or not prompts:
+                    return {
+                        "ok": False,
+                        "public_message": "Missing prompts for generation.",
+                        "llm_payload": {"status": "error", "message": "Missing prompts"},
+                    }
+                if not isinstance(model, str) or not model.strip():
+                    return {
+                        "ok": False,
+                        "public_message": "Missing model name.",
                         "llm_payload": {"status": "error", "message": "Missing model"},
                     }
+
+                if settings.environment != "development":
+                    callback_url = self._build_callback_url(settings.backend_url, tool_project)
 
                 all_urls: List[str] = []
                 drive_links: List[str] = []
@@ -833,329 +960,6 @@ class GeminiAgentService:
                 "llm_payload": {"status": "error", "message": "Tool execution failed"},
             }
 
-    async def process_chat(self, user_message: str, project_id: str, conversation_history: List[Dict[str, str]]):
-        await self._broadcast({"type": "progress", "data": {"task": "thinking", "progress": 5}})
-
-        prefs_data = await self.learning.get_preferences(project_id)
-        prefs_md = prefs_data.get("preferences_md", "")
-
-        pref_scope, pref_updates = self._extract_preference_updates(user_message, project_id)
-        if pref_scope and pref_updates:
-            try:
-                tool_call = {
-                    "id": f"pref_update_{uuid.uuid4().hex}",
-                    "type": "function",
-                    "function": {
-                        "name": "update_project_preferences",
-                        "arguments": json.dumps({
-                            "project_id": pref_scope,
-                            "updates": pref_updates,
-                        }),
-                    },
-                }
-                await self.execute_tool(tool_call, pref_scope)
-            except Exception:
-                pass
-
-        explicit_model = self._extract_explicit_model(user_message)
-        if explicit_model and self._is_image_request(user_message):
-            model_name: str | None = None
-            try:
-                coerced = self._coerce_model_name(explicit_model)
-                resolved = await self.kie_client.list_models(query=coerced, kind="image")
-                models = resolved.get("models") or []
-                explicit_norm = self._normalize_model_name(coerced)
-                matches: List[str] = []
-                for item in models:
-                    if not isinstance(item, dict):
-                        continue
-                    name = str(item.get("id") or item.get("name") or "").strip()
-                    if not name:
-                        continue
-                    if self._normalize_model_name(name) == explicit_norm:
-                        matches.append(name)
-
-                if len(matches) == 1:
-                    model_name = matches[0]
-                elif len(models) == 1 and isinstance(models[0], dict):
-                    model_name = str(models[0].get("id") or models[0].get("name") or "").strip() or None
-            except Exception:
-                model_name = None
-
-            if not model_name:
-                model_name = self._coerce_model_name(explicit_model)
-
-            size = self._infer_size(user_message)
-            count = self._infer_count(user_message)
-            prompt = re.sub(r"\b(using|use|with)\s+[^\n\r\.,;]+", "", user_message, flags=re.IGNORECASE).strip()
-            if model_name:
-                prompt = re.sub(re.escape(model_name), "", prompt, flags=re.IGNORECASE).strip()
-            prompt = prompt or user_message
-            prompts = [prompt for _ in range(count)]
-            tool_call = {
-                "id": f"direct_generate_{uuid.uuid4().hex}",
-                "type": "function",
-                "function": {
-                    "name": "generate_images",
-                    "arguments": json.dumps({
-                        "prompts": prompts,
-                        "model": model_name,
-                        "size": size,
-                        "project_id": project_id,
-                    }),
-                },
-            }
-
-            result = await self.execute_tool(tool_call, project_id)
-            if result.get("ok"):
-                rendered_links = result.get("download_links", [])
-                pending_tasks = result.get("pending_tasks", [])
-                content = self._render_links_message(rendered_links, pending_tasks)
-                await self._broadcast({"type": "progress", "data": {"task": "complete", "progress": 100}})
-                return {
-                    "content": content,
-                    "tool_calls_executed": 1,
-                    "cost_usd": 0.01,
-                }
-            return {
-                "content": result.get("public_message") or "I couldn't generate that image just now. Want me to try again?",
-                "tool_calls_executed": 1,
-                "cost_usd": 0.0,
-            }
-
-        system_content = (
-            f"You are Agent Gepetto. Active project: {project_id}.\n"
-            "You are the agent. Decide what to do next.\n"
-            "When the user requests generation, you MUST either call a tool or ask a clarification question.\n"
-            "If the user already specified a model earlier in the conversation, use that exact model without asking again.\n"
-            "If the user states a lasting preference or rule (e.g. 'for this project', 'always', 'only', 'never'), you MUST call update_project_preferences to save it silently.\n"
-            "\n"
-            "**Generating Images / Videos**\n"
-            "Do NOT assume or hardcode what models exist or what models are best. The available models are dynamic.\n"
-            "If a specific model is not explicitly requested by the user or defined in the preferences, you MUST use the `search_available_models` tool to query Kie.ai for the currently available options.\n"
-            "If the choice is ambiguous, ask the user. Pass the exact model name string to the `model` parameter.\n"
-            "If the tool returns an error, gracefully inform the user, log the failure, and attempt a retry using a different model from the available list or a modified prompt.\n"
-            "Never expose raw API errors.\n"
-            f"Learned/project preferences:\n{prefs_md}"
-        )
-
-        messages: List[Dict[str, Any]] = [{"role": "system", "content": system_content}]
-        messages.extend(conversation_history)
-        messages.append({"role": "user", "content": user_message})
-
-        tool_calls_executed = 0
-        completed_steps: List[str] = []
-        rendered_links: List[str] = []
-        pending_tasks: List[str] = []
-        empty_responses = 0
-
-        def _extract_text(content: Any) -> str:
-            if isinstance(content, str):
-                return content
-            if isinstance(content, list):
-                parts: List[str] = []
-                for item in content:
-                    if isinstance(item, dict) and isinstance(item.get("text"), str):
-                        parts.append(item["text"])
-                    elif isinstance(item, str):
-                        parts.append(item)
-                return "".join(parts)
-            return ""
-
-        for loop_step in range(self.MAX_LOOP_STEPS):
-            await self._broadcast({"type": "progress", "data": {"task": "thinking", "progress": min(90, 10 + loop_step * 6)}})
-            response = await self.kie_client.chat_completion(messages, tools=self.tools)
-            try:
-                credits = response.get("credits_consumed") if isinstance(response, dict) else None
-                if isinstance(credits, (int, float)) and credits > 0:
-                    await self.cost_tracker.log_cost(
-                        float(credits),
-                        "kie-chat",
-                        "gemini-2.5-flash",
-                        project_id,
-                        "Agent chat completion",
-                        session_id=self.session_id,
-                    )
-            except Exception:
-                pass
-            try:
-                self._debug_log(
-                    f"chat_response loop={loop_step} "
-                    + json.dumps(response, default=str)[:4000]
-                )
-            except Exception:
-                self._debug_log(f"chat_response loop={loop_step} <unserializable>")
-            if loop_step == 0:
-                try:
-                    print("[Project Gepetto] Raw chat response:", json.dumps(response, indent=2))
-                except Exception:
-                    print("[Project Gepetto] Raw chat response (unserializable)")
-            choice = response.get("choices", [{}])[0]
-            message = choice.get("message", {}) if isinstance(choice, dict) else {}
-
-            tool_calls = message.get("tool_calls") or choice.get("tool_calls") or []
-            function_call = message.get("function_call") or choice.get("function_call")
-            if not tool_calls and function_call:
-                tool_calls = [
-                    {
-                        "id": f"function_call_{uuid.uuid4().hex}",
-                        "type": "function",
-                        "function": {
-                            "name": function_call.get("name"),
-                            "arguments": function_call.get("arguments", "{}"),
-                        },
-                    }
-                ]
-            content = message.get("content")
-            assistant_text = _extract_text(content).strip()
-            if assistant_text:
-                assistant_text = re.sub(r"<system-reminder>[\s\S]*?</system-reminder>", "", assistant_text, flags=re.DOTALL).strip()
-            if isinstance(assistant_text, str) and "data:image" in assistant_text:
-                self._debug_log("blocked_inline_image_response")
-                messages.append(
-                    {
-                        "role": "system",
-                        "content": "Do not return inline images or base64. Use tool calls only for generation.",
-                    }
-                )
-                continue
-
-            if not tool_calls and isinstance(content, list):
-                for item in content:
-                    if not isinstance(item, dict):
-                        continue
-                    if item.get("type") not in ("tool_use", "tool"):
-                        continue
-                    name = item.get("name") or item.get("tool")
-                    tool_input = item.get("input") or item.get("arguments") or {}
-                    tool_id = item.get("id")
-                    if not name:
-                        continue
-                    tool_calls.append(
-                        {
-                            "id": tool_id or f"tool_use_{uuid.uuid4().hex}",
-                            "type": "function",
-                            "function": {
-                                "name": name,
-                                "arguments": json.dumps(tool_input),
-                            },
-                        }
-                    )
-
-            print(
-                "[Project Gepetto] Parsed chat response: "
-                f"tool_calls={len(tool_calls)} function_call={bool(function_call)} text_len={len(assistant_text)}"
-            )
-            self._debug_log(
-                "parsed_chat_response "
-                + json.dumps(
-                    {
-                        "tool_calls": len(tool_calls),
-                        "function_call": bool(function_call),
-                        "text_len": len(assistant_text),
-                    }
-                )
-            )
-
-            if tool_calls:
-                safe_content = message.get("content") or ""
-                if isinstance(safe_content, str) and ("data:image" in safe_content or len(safe_content) > 20000):
-                    safe_content = ""
-                messages.append({"role": "assistant", "content": safe_content, "tool_calls": tool_calls})
-
-                for call in tool_calls:
-                    if tool_calls_executed >= self.MAX_TOOL_CALLS:
-                        summary = "\n".join([f"- {step}" for step in completed_steps[-8:]]) or "- No completed actions yet"
-                        return {
-                            "content": "I stopped to prevent a runaway loop (20 tool calls). Here's what I completed so far:\n" + summary,
-                            "tool_calls_executed": tool_calls_executed,
-                            "cost_usd": 0.0,
-                        }
-
-                    if explicit_model and call.get("function", {}).get("name") == "generate_images":
-                        try:
-                            call_args_raw = call.get("function", {}).get("arguments") or "{}"
-                            call_args = json.loads(call_args_raw) if isinstance(call_args_raw, str) else dict(call_args_raw)
-                            call_args["model"] = self._coerce_model_name(explicit_model)
-                            call["function"]["arguments"] = json.dumps(call_args)
-                        except Exception:
-                            pass
-
-                    result = await self.execute_tool(call, project_id)
-                    tool_calls_executed += 1
-
-                    if not result.get("ok"):
-                        # Feed the error back to the LLM instead of returning
-                        tool_message = {
-                            "role": "tool",
-                            "tool_call_id": call.get("id", f"tool_{tool_calls_executed}"),
-                            "name": call.get("function", {}).get("name", "tool"),
-                            "content": json.dumps(result.get("llm_payload", {"status": "error", "message": result.get("public_message", "Unknown error")})),
-                        }
-                        messages.append(tool_message)
-                        continue
-
-                    rendered_links.extend(result.get("download_links", []))
-                    pending_tasks.extend(result.get("pending_tasks", []))
-                    completed_steps.append(call.get("function", {}).get("name", "tool"))
-
-                    tool_message = {
-                        "role": "tool",
-                        "tool_call_id": call.get("id", f"tool_{tool_calls_executed}"),
-                        "name": call.get("function", {}).get("name", "tool"),
-                        "content": json.dumps(result.get("llm_payload", {"status": "ok"})),
-                    }
-                    messages.append(tool_message)
-                continue
-
-            if assistant_text:
-                if (
-                    self._is_image_request(user_message)
-                    and not tool_calls
-                    and not rendered_links
-                    and not pending_tasks
-                ):
-                    messages.append(
-                        {
-                            "role": "system",
-                            "content": "You must respond with a tool call when the user requests image generation. Do not describe or claim images were generated unless a tool call was executed.",
-                        }
-                    )
-                    continue
-                if rendered_links or pending_tasks:
-                    assistant_text += "\n\n" + self._render_links_message(rendered_links, pending_tasks)
-                await self._broadcast({"type": "progress", "data": {"task": "complete", "progress": 100}})
-                return {
-                    "content": assistant_text,
-                    "tool_calls_executed": tool_calls_executed,
-                    "cost_usd": 0.0 if tool_calls_executed == 0 else 0.01,
-                }
-
-            # Guard against empty responses from the model
-            empty_responses += 1
-            if empty_responses >= 3:
-                return {
-                    "content": "I ran into a problem: the model is repeatedly returning empty outputs. Please try rewording your prompt.",
-                    "tool_calls_executed": tool_calls_executed,
-                    "cost_usd": 0.0,
-                }
-            
-            print(f"[Project Gepetto] Empty model response: {message}")
-            messages.append(
-                {
-                    "role": "system",
-                    "content": "You must respond with a tool call or a clarification question. Do not return empty output.",
-                }
-            )
-            continue
-
-        summary = "\n".join([f"- {step}" for step in completed_steps[-8:]]) or "- No completed actions yet"
-        return {
-            "content": "I stopped after several reasoning steps to avoid a runaway loop. Here's what I completed so far:\n" + summary,
-            "tool_calls_executed": tool_calls_executed,
-            "cost_usd": 0.0,
-        }
-
     async def regenerate_rejected_asset(self, project_id: str, asset_url: str) -> Dict[str, Any]:
         record = await self.learning.find_generation_by_asset(project_id, asset_url)
         if not record:
@@ -1163,7 +967,7 @@ class GeminiAgentService:
 
         prompt = record.get("prompt") or ""
         model = record.get("model") or ""
-        size = record.get("size") or "1024x1024"
+        size = record.get("size") or ""
         slot_id = record.get("slot_id")
 
         if slot_id:
@@ -1171,16 +975,8 @@ class GeminiAgentService:
             if attempts >= 3:
                 return {"ok": False, "message": "Max regeneration attempts reached"}
 
-        if not model:
-            return {"ok": False, "message": "No model stored for regeneration"}
-
-        patterns = await self.learning.get_learned_patterns(project_id)
-        prompt = self.learning.tweak_prompt(prompt, patterns)
-
-        prefs_data = await self.learning.get_preferences(project_id)
-        rules = self._extract_rules(prefs_data.get("preferences_md", ""))
-        prompts, size = self._apply_preference_rules([prompt], size, rules)
-        prompts = self._apply_learned_patterns(prompts, patterns)
+        if not prompt or not model or not size:
+            return {"ok": False, "message": "Missing regeneration data"}
 
         from app.config import settings
         callback_url = None
@@ -1188,11 +984,12 @@ class GeminiAgentService:
             callback_url = f"{settings.backend_url}/api/kie/callback"
 
         generation = await self.kie_client.generate_images(
-            prompts=prompts,
+            prompts=[prompt],
             model=model,
             size=size,
             callback_url=callback_url,
             project_id=project_id,
+            allow_fallbacks=False,
         )
 
         if not generation.get("ok"):
@@ -1230,7 +1027,7 @@ class GeminiAgentService:
                 await self.learning.log_generation(
                     project_id,
                     download_links[-1],
-                    prompts[min(idx, len(prompts) - 1)] if prompts else "",
+                    prompt,
                     generation.get("model_used", model),
                     size,
                     batch_id,

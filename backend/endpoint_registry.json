@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-03-06T10:15:55.785633+00:00",
+  "updated_at": "2026-03-11T02:27:31.723977+00:00",
   "models": {
     "claude-sonnet-4-5": {
       "chat": {
@@ -413,10 +413,10 @@
           },
           "https://api.kie.ai/api/v1/jobs/createTask": {
             "success_count": 0,
-            "failure_count": 1,
-            "consecutive_failures": 1,
+            "failure_count": 2,
+            "consecutive_failures": 2,
             "last_success": null,
-            "last_failure": "2026-03-06T03:34:58.956527+00:00",
+            "last_failure": "2026-03-07T07:27:49.248834+00:00",
             "last_status_code": 500,
             "last_error_type": "api_error",
             "last_error_message": "The model name you specified is not supported. Please verify your input and use one of the supported models provided by KIE.",
@@ -549,35 +549,35 @@
         "endpoints": {
           "https://api.kie.ai/v1/models": {
             "success_count": 0,
-            "failure_count": 76,
-            "consecutive_failures": 76,
+            "failure_count": 79,
+            "consecutive_failures": 79,
             "last_success": null,
-            "last_failure": "2026-03-06T06:55:54.132976+00:00",
+            "last_failure": "2026-03-09T04:16:52.900469+00:00",
             "last_status_code": 404,
             "last_error_type": "http_status",
-            "last_error_message": "{\"timestamp\":1772780153222,\"status\":404,\"error\":\"Not Found\",\"message\":\"No message available\",\"path\":\"/v1/models\"}",
+            "last_error_message": "{\"timestamp\":1773029811943,\"status\":404,\"error\":\"Not Found\",\"message\":\"No message available\",\"path\":\"/v1/models\"}",
             "last_params": {}
           },
           "https://api.kie.ai/models": {
             "success_count": 0,
-            "failure_count": 75,
-            "consecutive_failures": 75,
+            "failure_count": 78,
+            "consecutive_failures": 78,
             "last_success": null,
-            "last_failure": "2026-03-06T06:55:53.706198+00:00",
+            "last_failure": "2026-03-09T04:16:52.383640+00:00",
             "last_status_code": 404,
             "last_error_type": "http_status",
-            "last_error_message": "{\"timestamp\":1772780152796,\"status\":404,\"error\":\"Not Found\",\"message\":\"No message available\",\"path\":\"/models\"}",
+            "last_error_message": "{\"timestamp\":1773029811427,\"status\":404,\"error\":\"Not Found\",\"message\":\"No message available\",\"path\":\"/models\"}",
             "last_params": {}
           },
           "https://api.kie.ai/api/v1/models": {
             "success_count": 0,
-            "failure_count": 75,
-            "consecutive_failures": 75,
+            "failure_count": 78,
+            "consecutive_failures": 78,
             "last_success": null,
-            "last_failure": "2026-03-06T06:55:53.914221+00:00",
+            "last_failure": "2026-03-09T04:16:52.696802+00:00",
             "last_status_code": 404,
             "last_error_type": "http_status",
-            "last_error_message": "{\"timestamp\":1772780153002,\"status\":404,\"error\":\"Not Found\",\"message\":\"No message available\",\"path\":\"/api/v1/models\"}",
+            "last_error_message": "{\"timestamp\":1773029811738,\"status\":404,\"error\":\"Not Found\",\"message\":\"No message available\",\"path\":\"/api/v1/models\"}",
             "last_params": {}
           }
         },
@@ -589,276 +589,127 @@
       "chat": {
         "endpoints": {
           "https://api.kie.ai/gemini-2.5-flash/v1/chat/completions": {
-            "success_count": 76,
-            "failure_count": 44,
-            "consecutive_failures": 0,
-            "last_success": "2026-03-06T10:15:55.785426+00:00",
-            "last_failure": "2026-03-06T06:35:53.208221+00:00",
-            "last_status_code": 200,
-            "last_error_type": null,
-            "last_error_message": null,
+            "success_count": 147,
+            "failure_count": 53,
+            "consecutive_failures": 3,
+            "last_success": "2026-03-10T14:53:20.219980+00:00",
+            "last_failure": "2026-03-11T02:10:36.401240+00:00",
+            "last_status_code": 500,
+            "last_error_type": "api_error",
+            "last_error_message": "Server exception, please try again later",
             "last_params": {
               "model": "gemini-2.5-flash",
               "messages": [
                 {
                   "role": "system",
-                  "content": "You are Agent Gepetto. Active project: drew-5trips.\nYou are the agent. Decide what to do next.\nWhen the user requests generation, you MUST either call a tool or ask a clarification question.\nIf the user already specified a model earlier in the conversation, use that exact model without asking again.\nIf the user states a lasting preference or rule (e.g. 'for this project', 'always', 'only', 'never'), you MUST call update_project_preferences to save it silently.\n\n**Generating Images / Videos**\nDo NOT assume or hardcode what models exist or what models are best. The available models are dynamic.\nIf a specific model is not explicitly requested by the user or defined in the preferences, you MUST use the `search_available_models` tool to query Kie.ai for the currently available options.\nIf the choice is ambiguous, ask the user. Pass the exact model name string to the `model` parameter.\nIf the tool returns an error, gracefully inform the user, log the failure, and attempt a retry using a different model from the available list or a modified prompt.\nNever expose raw API errors.\nLearned/project preferences:\n## Global Rules (all projects)\n# Global Agent Preferences\n# These apply to ALL projects unless overridden by per-project preferences.\n\n## Aspect Ratios\n- UGC content (selfies, testimonials, lifestyle, talking head, product demos): ALWAYS 9:16 portrait\n- Product shots, still life, pack shots: ALWAYS 1:1 square\n- Cinematic / brand film stills: ALWAYS 16:9 landscape\n- Default if not specified: 1:1\n\n## Generation Defaults\n- Variants per request: 4 (2 concepts \u00d7 2 variants)\n- Default style: photorealistic unless brief specifies otherwise\n- Default image model: gpt-image-1\n- Default video model: veo-3.1-fast\n\n## UGC Rules\n- UGC images must look organic and unposed \u2014 not professional photography\n- Natural lighting preferred (window light, ambient)\n- Slight motion blur or camera shake is acceptable and preferred\n- No studio lighting, no seamless backgrounds\n- Subject should look directly at camera unless brief specifies otherwise\n\n## Quality Gates (human review \u2014 NO automated scoring)\n- All variants go to the human review gallery\n- Only auto-reject: API error, corrupt file, or completely blank image\n- Human always makes final keep/reject decision\n\n## Prompt Construction\n- Always include aspect ratio as parameter (e.g. --ar 9:16 for Midjourney, or in prompt text for others)\n- Always include the model explicitly in the tool call\n- Keep prompts concise \u2014 describe the shot, not a novel\n\n## Auto Updates\n- selfie.aspect_ratio: 9:16\n\n\n## Project-Specific Rules (override global)\n# [Client Name] - Project Preferences\n# TEMPLATE - fill in with real details for this client\n\n## Client\n- Brand: [brand name]\n- Contact: [contact name]\n- Content type: [e.g. UGC social media, brand graphics, promo videos]\n\n## Visual Style\n- [describe the look and feel]\n- [colour palette, lighting, mood]\n- [what to include]\n- Avoid: [what NOT to do]\n\n## QC Standards\n- Minimum score: [7.0-9.0]/10\n- Key criteria: [what matters most - face realism, brand accuracy, etc.]\n- Auto-reject: [dealbreakers - extra fingers, wrong colours, etc.]\n\n## Prompt Patterns\n- Always include: \"[key style words that should be in every prompt]\"\n- Avoid in prompts: \"[words that produce wrong results]\"\n\n## Reference Assets\n- Product images, logos, and reference material go in the /assets/ subfolder\n- The agent can access these when generating (e.g. for image-to-image, style reference)\n\n## Notes\n- [any other context the agent should know about this client]\n- [delivery preferences, turnaround expectations, etc.]\n\n\n## Learned Patterns (auto-generated from your feedback)\n- Additions: \n- Exclusions: \n- Positive patterns: \n- Negative patterns:"
+                  "content": "You are the Geppetto orchestration brain. Return a single JSON object and nothing else. Do not wrap in markdown or code fences.\n\nValid response types:\n1) {\"action\":\"question\", \"message\":\"...\"}\n2) {\"action\":\"plan\", \"kind\":\"image\"|\"video\", \"project_id\":\"...\", \"confirm\":true|false, \"batches\":[{\"model\":\"...\", \"prompts\":[...], \"count\":1, \"size\":\"...\", \"ratio\":\"...\"}]}\n3) {\"action\":\"chat\", \"message\":\"...\"}\n\nIf you need missing info (model, count, ratio, etc.), return action=question.\nIf you can build a plan, return action=plan.\nIf the user is just chatting, return action=chat.\n\nIf a pending plan exists in history, it is inside <plan>{...}</plan>. When the user clearly confirms that plan, return action=plan with confirm=true and copy the plan EXACTLY (including batches). Do not modify prompts.\nIf there is no pending plan in history, confirm MUST be false.\nIf the user requests edits, return action=plan with confirm=false and a NEW plan.\n\nMulti-model requests:\n- When the user asks for the same prompt across multiple models, return one batch per model.\n- There is no limitation on using multiple models in a single plan. Do not invent restrictions.\n\nPlan requirements:\n- prompts must be production-quality and enriched, include subject, setting, lighting, camera/lens, mood, composition.\n- do not introduce new entities or locations not implied by the request.\n- prompts array length must equal count for each batch.\n- for image batches, include BOTH size and ratio.\n- use size values: 1024x1024 (1:1), 1024x1792 (9:16), 1792x1024 (16:9), 1024x768 (4:3), 768x1024 (3:4).\n- never claim a limitation unless it is a real technical constraint or API error.\n\nCurrent project_id: drew-5trips\n\nProject preferences (apply):\n## Global Rules (all projects)\n# Global Agent Preferences\n# These apply to ALL projects unless overridden by per-project preferences.\n\n## Aspect Ratios\n- UGC content (selfies, testimonials, lifestyle, talking head, product demos): ALWAYS 9:16 portrait\n- Product shots, still life, pack shots: ALWAYS 1:1 square\n- Cinematic / brand film stills: ALWAYS 16:9 landscape\n- Default if not specified: 1:1\n\n## Generation Defaults\n- Default style: photorealistic unless brief specifies otherwise\n- Default image model: gpt-image-1\n- Default video model: veo-3.1-fast\n\n## UGC Rules\n- UGC images must look organic and unposed \u2014 not professional photography\n- Natural lighting preferred (window light, ambient)\n- Slight motion blur or camera shake is acceptable and preferred\n- No studio lighting, no seamless backgrounds\n- Subject should look directly at camera unless brief specifies otherwise\n\n## Quality Gates (human review \u2014 NO automated scoring)\n- All variants go to the human review gallery\n- Only auto-reject: API error, corrupt file, or completely blank image\n- Human always makes final keep/reject decision\n\n## Prompt Construction\n- Always include aspect ratio as parameter (e.g. --ar 9:16 for Midjourney, or in prompt text for others)\n- Always include the model explicitly in the tool call\n- Keep prompts concise \u2014 describe the shot, not a novel\n\n## Auto Updates\n- selfie.aspect_ratio: 9:16\n\n\n## Project-Specific Rules (override global)\n# [Client Name] - Project Preferences\n# TEMPLATE - fill in with real details for this client\n\n## Client\n- Brand: [brand name]\n- Contact: [contact name]\n- Content type: [e.g. UGC social media, brand graphics, promo videos]\n\n## Visual Style\n- [describe the look and feel]\n- [colour palette, lighting, mood]\n- [what to include]\n- Avoid: [what NOT to do]\n\n## QC Standards\n- Minimum score: [7.0-9.0]/10\n- Key criteria: [what matters most - face realism, brand accuracy, etc.]\n- Auto-reject: [dealbreakers - extra fingers, wrong colours, etc.]\n\n## Prompt Patterns\n- Always include: \"[key style words that should be in every prompt]\"\n- Avoid in prompts: \"[words that produce wrong results]\"\n\n## Reference Assets\n- Product images, logos, and reference material go in the /assets/ subfolder\n- The agent can access these when generating (e.g. for image-to-image, style reference)\n\n## Notes\n- [any other context the agent should know about this client]\n- [delivery preferences, turnaround expectations, etc.]\n\n\n## Learned Patterns (auto-generated from your feedback)\n- Additions: \n- Exclusions: \n- Positive patterns: \n- Negative patterns:\n\nLearned patterns (apply):\n{\"keep_rate_by_model\": {\"unknown\": \"33%\"}, \"positive_patterns\": [], \"negative_patterns\": [], \"recommended_prompt_additions\": [], \"recommended_prompt_exclusions\": []}\n"
                 },
                 {
                   "role": "user",
-                  "content": "hi"
+                  "content": "generate a mirro selfe please"
+                },
+                {
+                  "role": "assistant",
+                  "content": "Which image model should I use? (e.g. gpt-image-1)"
+                },
+                {
+                  "role": "user",
+                  "content": "z-image"
+                },
+                {
+                  "role": "assistant",
+                  "content": "Proposed generation:\n- Count: 1\n- Model: z-image\n- Aspect ratio: 9:16\nPrompts (verbatim):\n1. A photorealistic mirror selfie, organic and unposed, natural lighting (window light, ambient), slight motion blur or camera shake, no studio lighting, no seamless backgrounds, subject looking directly at camera.\nReply confirm to generate, or send edits.\n<plan>{\"kind\": \"image\", \"model\": \"z-image\", \"ratio\": \"9:16\", \"prompts\": [\"A photorealistic mirror selfie, organic and unposed, natural lighting (window light, ambient), slight motion blur or camera shake, no studio lighting, no seamless backgrounds, subject looking directly at camera.\"], \"project_id\": \"drew-5trips\", \"size\": \"1024x1792\", \"ok\": true, \"count\": 1}</plan>"
+                },
+                {
+                  "role": "user",
+                  "content": "yes please"
+                },
+                {
+                  "role": "assistant",
+                  "content": "I hit a temporary backend issue. Please retry in a moment."
+                },
+                {
+                  "role": "user",
+                  "content": "yes please"
+                },
+                {
+                  "role": "assistant",
+                  "content": "Generated 1.\n\n![variant_0](/api/storage/download/drew-5trips/generated/gen_8c0ed3f66882400aa6bf20d12a844905_0.jpg)\n<plan-confirmed hash=\"9a0b7df6c9e18b795658d52f4a791c3448ca8855b04f4b97e8384e286c04b249\">"
+                },
+                {
+                  "role": "user",
+                  "content": "cool now using z-image can you do one of sydney sweeney homeless in a UFC ring in a new zealand backyard, 4:3 ratio"
+                },
+                {
+                  "role": "assistant",
+                  "content": "Proposed generation:\n- Count: 1\n- Model: z-image-can-you\n- Size: 1024x768\nPrompts (verbatim):\n1. sydney sweeney homeless in a UFC ring in a new zealand backyard, photorealistic\nReply confirm to generate, or send edits.\n<plan>{\"kind\": \"image\", \"model\": \"z-image-can-you\", \"ratio\": null, \"prompts\": [\"sydney sweeney homeless in a UFC ring in a new zealand backyard, photorealistic\"], \"project_id\": \"drew-5trips\", \"size\": \"1024x768\", \"ok\": true, \"count\": 1}</plan>"
+                },
+                {
+                  "role": "user",
+                  "content": "hello"
+                },
+                {
+                  "role": "assistant",
+                  "content": "Hello there! How can I help you today?"
+                },
+                {
+                  "role": "user",
+                  "content": "i would like to generate homeless sydney sweeney , UFC fighting in the backyard of a new zealand backyard."
+                },
+                {
+                  "role": "assistant",
+                  "content": "Can you please confirm the image model you want to use? You mentioned 'z-image' previously, but the system interpreted it as 'z-image-can-you' in the last proposal."
+                },
+                {
+                  "role": "user",
+                  "content": "yeah, z-image plaese"
+                },
+                {
+                  "role": "assistant",
+                  "content": "Proposed generation:\n\nCount: 1\nModel: z-image\nAspect ratio: 4:3\nSize: 1024x768\nPrompts (verbatim):\n1. A gritty, photorealistic image of Sydney Sweeney, disheveled and determined, engaged in a UFC fight within a makeshift ring in an overgrown New Zealand backyard. Harsh late afternoon natural lighting, wide-angle low-angle shot, intense mood, documentary style composition. \nReply confirm to generate, or send edits.\n<plan>{\"action\": \"plan\", \"kind\": \"image\", \"model\": \"z-image\", \"prompts\": [\"A gritty, photorealistic image of Sydney Sweeney, disheveled and determined, engaged in a UFC fight within a makeshift ring in an overgrown New Zealand backyard. Harsh late afternoon natural lighting, wide-angle low-angle shot, intense mood, documentary style composition. \"], \"size\": \"1024x768\", \"ratio\": \"4:3\", \"count\": 1, \"project_id\": \"drew-5trips\", \"confirm\": false}</plan>"
+                },
+                {
+                  "role": "user",
+                  "content": "one edit - could we please do the same image , but made with nano banana pro ? 4:3 as well"
+                },
+                {
+                  "role": "assistant",
+                  "content": "Proposed generation:\n\nCount: 1\nModel: nano banana pro\nAspect ratio: 4:3\nSize: 1024x768\nPrompts (verbatim):\n1. A gritty, photorealistic image of Sydney Sweeney, disheveled and determined, engaged in a UFC fight within a makeshift ring in an overgrown New Zealand backyard. Harsh late afternoon natural lighting, wide-angle low-angle shot, intense mood, documentary style composition. \nReply confirm to generate, or send edits.\n<plan>{\"action\": \"plan\", \"kind\": \"image\", \"model\": \"nano banana pro\", \"prompts\": [\"A gritty, photorealistic image of Sydney Sweeney, disheveled and determined, engaged in a UFC fight within a makeshift ring in an overgrown New Zealand backyard. Harsh late afternoon natural lighting, wide-angle low-angle shot, intense mood, documentary style composition. \"], \"size\": \"1024x768\", \"ratio\": \"4:3\", \"count\": 1, \"project_id\": \"drew-5trips\", \"confirm\": false}</plan>"
+                },
+                {
+                  "role": "user",
+                  "content": "well now we are doing 2 images, one with nano banana pro, and one with z-image."
+                },
+                {
+                  "role": "assistant",
+                  "content": "I can only propose images from one model at a time. Which model would you like to use for this generation, 'nano banana pro' or 'z-image'?"
+                },
+                {
+                  "role": "user",
+                  "content": "well now we are doing 2 images, one with nano banana pro, and one with z-image."
+                },
+                {
+                  "role": "assistant",
+                  "content": "Proposed generation:\n\nBatches: 2\nBatch 1:\n- Model: nano banana pro\n- Count: 1\n- Aspect ratio: 4:3\n- Size: 1024x768\nPrompts (verbatim):\n1. A gritty, photorealistic image of Sydney Sweeney, disheveled and determined, engaged in a UFC fight within a makeshift ring in an overgrown New Zealand backyard. Harsh late afternoon natural lighting, wide-angle low-angle shot, intense mood, documentary style composition.\nBatch 2:\n- Model: z-image\n- Count: 1\n- Aspect ratio: 4:3\n- Size: 1024x768\nPrompts (verbatim):\n1. A gritty, photorealistic image of Sydney Sweeney, disheveled and determined, engaged in a UFC fight within a makeshift ring in an overgrown New Zealand backyard. Harsh late afternoon natural lighting, wide-angle low-angle shot, intense mood, documentary style composition.\nReply confirm to generate, or send edits.\n<plan>{\"action\": \"plan\", \"kind\": \"image\", \"project_id\": \"drew-5trips\", \"confirm\": false, \"batches\": [{\"model\": \"nano banana pro\", \"prompts\": [\"A gritty, photorealistic image of Sydney Sweeney, disheveled and determined, engaged in a UFC fight within a makeshift ring in an overgrown New Zealand backyard. Harsh late afternoon natural lighting, wide-angle low-angle shot, intense mood, documentary style composition.\"], \"count\": 1, \"size\": \"1024x768\", \"ratio\": \"4:3\"}, {\"model\": \"z-image\", \"prompts\": [\"A gritty, photorealistic image of Sydney Sweeney, disheveled and determined, engaged in a UFC fight within a makeshift ring in an overgrown New Zealand backyard. Harsh late afternoon natural lighting, wide-angle low-angle shot, intense mood, documentary style composition.\"], \"count\": 1, \"size\": \"1024x768\", \"ratio\": \"4:3\"}]}</plan>"
+                },
+                {
+                  "role": "user",
+                  "content": "comfirm !"
                 }
               ],
-              "tools": [
-                {
-                  "type": "function",
-                  "function": {
-                    "name": "search_available_models",
-                    "description": "List available models and metadata (name, type, pricing, status).",
-                    "parameters": {
-                      "type": "object",
-                      "properties": {
-                        "query": {
-                          "type": "string"
-                        },
-                        "kind": {
-                          "type": "string",
-                          "enum": [
-                            "image",
-                            "video",
-                            "chat",
-                            "any"
-                          ]
-                        }
-                      },
-                      "required": []
-                    }
-                  }
-                },
-                {
-                  "type": "function",
-                  "function": {
-                    "name": "generate_images",
-                    "description": "Generate one or more distinct images using the specified model.",
-                    "parameters": {
-                      "type": "object",
-                      "properties": {
-                        "prompts": {
-                          "type": "array",
-                          "items": {
-                            "type": "string"
-                          },
-                          "description": "Array of detailed prompts. Each prompt generates one distinct image."
-                        },
-                        "model": {
-                          "type": "string",
-                          "description": "The exact API name of the image model to use."
-                        },
-                        "size": {
-                          "type": "string",
-                          "description": "Aspect ratio/resolution (e.g. 1024x1024, 1024x1792)"
-                        },
-                        "project_id": {
-                          "type": "string"
-                        },
-                        "style_overrides": {
-                          "type": "object"
-                        }
-                      },
-                      "required": [
-                        "prompts",
-                        "project_id",
-                        "model"
-                      ]
-                    }
-                  }
-                },
-                {
-                  "type": "function",
-                  "function": {
-                    "name": "generate_videos",
-                    "description": "Generate videos with Kie.ai",
-                    "parameters": {
-                      "type": "object",
-                      "properties": {
-                        "prompts": {
-                          "type": "array",
-                          "items": {
-                            "type": "string"
-                          }
-                        },
-                        "model": {
-                          "type": "string"
-                        },
-                        "project_id": {
-                          "type": "string"
-                        },
-                        "reference_images": {
-                          "type": "array",
-                          "items": {
-                            "type": "string"
-                          }
-                        }
-                      },
-                      "required": [
-                        "prompts",
-                        "project_id",
-                        "model"
-                      ]
-                    }
-                  }
-                },
-                {
-                  "type": "function",
-                  "function": {
-                    "name": "save_to_storage",
-                    "description": "Save files to local storage",
-                    "parameters": {
-                      "type": "object",
-                      "properties": {
-                        "files": {
-                          "type": "array",
-                          "items": {
-                            "type": "string"
-                          }
-                        },
-                        "project_id": {
-                          "type": "string"
-                        },
-                        "subfolder": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "files",
-                        "project_id",
-                        "subfolder"
-                      ]
-                    }
-                  }
-                },
-                {
-                  "type": "function",
-                  "function": {
-                    "name": "trigger_n8n_workflow",
-                    "description": "Trigger n8n workflow",
-                    "parameters": {
-                      "type": "object",
-                      "properties": {
-                        "workflow_name": {
-                          "type": "string",
-                          "enum": [
-                            "ugc-batch",
-                            "video-render",
-                            "script-process",
-                            "voice-generate"
-                          ]
-                        },
-                        "payload": {
-                          "type": "object"
-                        }
-                      },
-                      "required": [
-                        "workflow_name",
-                        "payload"
-                      ]
-                    }
-                  }
-                },
-                {
-                  "type": "function",
-                  "function": {
-                    "name": "read_project_preferences",
-                    "description": "Read project preferences and learned patterns",
-                    "parameters": {
-                      "type": "object",
-                      "properties": {
-                        "project_id": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "project_id"
-                      ]
-                    }
-                  }
-                },
-                {
-                  "type": "function",
-                  "function": {
-                    "name": "update_project_preferences",
-                    "description": "Update project preferences",
-                    "parameters": {
-                      "type": "object",
-                      "properties": {
-                        "project_id": {
-                          "type": "string"
-                        },
-                        "updates": {
-                          "type": "object"
-                        }
-                      },
-                      "required": [
-                        "project_id",
-                        "updates"
-                      ]
-                    }
-                  }
-                },
-                {
-                  "type": "function",
-                  "function": {
-                    "name": "log_cost",
-                    "description": "Log cost entry",
-                    "parameters": {
-                      "type": "object",
-                      "properties": {
-                        "amount_usd": {
-                          "type": "number"
-                        },
-                        "service": {
-                          "type": "string",
-                          "enum": [
-                            "kie-chat",
-                            "kie-image",
-                            "kie-video",
-                            "kie-vision",
-                            "elevenlabs"
-                          ]
-                        },
-                        "model": {
-                          "type": "string"
-                        },
-                        "project_id": {
-                          "type": "string"
-                        },
-                        "description": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "amount_usd",
-                        "service",
-                        "model",
-                        "project_id",
-                        "description"
-                      ]
-                    }
-                  }
-                }
-              ],
-              "tool_choice": "auto"
+              "reasoning": "low",
+              "temperature": 0.2
             }
           },
           "https://api.kie.ai/v1/chat/completions": {
             "success_count": 0,
-            "failure_count": 18,
-            "consecutive_failures": 18,
+            "failure_count": 20,
+            "consecutive_failures": 20,
             "last_success": null,
-            "last_failure": "2026-03-06T06:44:15.409699+00:00",
+            "last_failure": "2026-03-11T02:27:31.723806+00:00",
             "last_status_code": 404,
             "last_error_type": "http_status",
-            "last_error_message": "{\"timestamp\":1772779454519,\"status\":404,\"error\":\"Not Found\",\"message\":\"No message available\",\"path\":\"/v1/chat/completions\"}",
+            "last_error_message": "{\"timestamp\":1773196051715,\"status\":404,\"error\":\"Not Found\",\"message\":\"No message available\",\"path\":\"/v1/chat/completions\"}",
             "last_params": {}
           },
           "https://api.kie.ai/chat/completions": {
@@ -884,9 +735,9 @@
             "last_params": {}
           }
         },
-        "status": "healthy",
+        "status": "down",
         "last_success_url": "https://api.kie.ai/gemini-2.5-flash/v1/chat/completions",
-        "last_failure_url": "https://api.kie.ai/api/v1/chat/completions"
+        "last_failure_url": "https://api.kie.ai/v1/chat/completions"
       }
     },
     "z-image": {
@@ -937,10 +788,10 @@
             "last_params": {}
           },
           "https://api.kie.ai/api/v1/jobs/createTask": {
-            "success_count": 6,
+            "success_count": 27,
             "failure_count": 0,
             "consecutive_failures": 0,
-            "last_success": "2026-03-06T06:58:00.476340+00:00",
+            "last_success": "2026-03-10T14:53:20.881821+00:00",
             "last_failure": null,
             "last_status_code": 200,
             "last_error_type": null,
@@ -948,8 +799,8 @@
             "last_params": {
               "model": "z-image",
               "input": {
-                "prompt": "Mirror selfie of a person in a softly lit room, casual outfit, natural light, handheld feel, authentic UGC look",
-                "aspect_ratio": "9:16"
+                "prompt": "A gritty, photorealistic image of Sydney Sweeney, disheveled and determined, engaged in a UFC fight within a makeshift ring in an overgrown New Zealand backyard. Harsh late afternoon natural lighting, wide-angle low-angle shot, intense mood, documentary style composition.",
+                "aspect_ratio": "1:1"
               }
             }
           }
@@ -960,8 +811,8 @@
       },
       "poll_image": {
         "status": "healthy",
-        "last_success_url": "https://api.kie.ai/api/v1/jobs/recordInfo?taskId=2112b7c4b3eb846c76cb8e04d282c4ae",
-        "last_failure_url": null,
+        "last_success_url": "https://api.kie.ai/api/v1/jobs/recordInfo?taskId=360832638e66356bcc91643801975a6f",
+        "last_failure_url": "https://api.kie.ai/api/v1/jobs/recordInfo?taskId=b789b86d7e7c3a076ba975bd1475bdd8",
         "endpoints": {
           "https://api.kie.ai/api/v1/jobs/recordInfo?taskId=ee4cbba68dfdacecb47be27d0ac66d91": {
             "success_count": 5,
@@ -1040,6 +891,279 @@
             "last_params": {
               "method": "GET"
             }
+          },
+          "https://api.kie.ai/api/v1/jobs/recordInfo?taskId=8d6ee542489c0cd5c9008b4c112c3d8f": {
+            "success_count": 25,
+            "failure_count": 0,
+            "consecutive_failures": 0,
+            "last_success": "2026-03-06T13:40:36.273317+00:00",
+            "last_failure": null,
+            "last_status_code": 200,
+            "last_error_type": null,
+            "last_error_message": null,
+            "last_params": {
+              "method": "GET"
+            }
+          },
+          "https://api.kie.ai/api/v1/jobs/recordInfo?taskId=cda516119216395bcb2eaa9c7eb679ec": {
+            "success_count": 4,
+            "failure_count": 0,
+            "consecutive_failures": 0,
+            "last_success": "2026-03-09T02:10:14.390147+00:00",
+            "last_failure": null,
+            "last_status_code": 200,
+            "last_error_type": null,
+            "last_error_message": null,
+            "last_params": {
+              "method": "GET"
+            }
+          },
+          "https://api.kie.ai/api/v1/jobs/recordInfo?taskId=6159d63fa6c9a821140e280815fa9e38": {
+            "success_count": 4,
+            "failure_count": 0,
+            "consecutive_failures": 0,
+            "last_success": "2026-03-09T02:10:27.492893+00:00",
+            "last_failure": null,
+            "last_status_code": 200,
+            "last_error_type": null,
+            "last_error_message": null,
+            "last_params": {
+              "method": "GET"
+            }
+          },
+          "https://api.kie.ai/api/v1/jobs/recordInfo?taskId=b117b0d592793aafd3f70984d51ed1de": {
+            "success_count": 5,
+            "failure_count": 0,
+            "consecutive_failures": 0,
+            "last_success": "2026-03-09T02:10:43.789389+00:00",
+            "last_failure": null,
+            "last_status_code": 200,
+            "last_error_type": null,
+            "last_error_message": null,
+            "last_params": {
+              "method": "GET"
+            }
+          },
+          "https://api.kie.ai/api/v1/jobs/recordInfo?taskId=a03f06cf622712565328c047d378d182": {
+            "success_count": 5,
+            "failure_count": 0,
+            "consecutive_failures": 0,
+            "last_success": "2026-03-09T02:11:00.071626+00:00",
+            "last_failure": null,
+            "last_status_code": 200,
+            "last_error_type": null,
+            "last_error_message": null,
+            "last_params": {
+              "method": "GET"
+            }
+          },
+          "https://api.kie.ai/api/v1/jobs/recordInfo?taskId=c4f3d75068ff0c0625c37939370722ce": {
+            "success_count": 4,
+            "failure_count": 0,
+            "consecutive_failures": 0,
+            "last_success": "2026-03-09T02:11:13.158712+00:00",
+            "last_failure": null,
+            "last_status_code": 200,
+            "last_error_type": null,
+            "last_error_message": null,
+            "last_params": {
+              "method": "GET"
+            }
+          },
+          "https://api.kie.ai/api/v1/jobs/recordInfo?taskId=e01f0906a8370b04f421bd663ec026ed": {
+            "success_count": 5,
+            "failure_count": 0,
+            "consecutive_failures": 0,
+            "last_success": "2026-03-09T02:11:29.449314+00:00",
+            "last_failure": null,
+            "last_status_code": 200,
+            "last_error_type": null,
+            "last_error_message": null,
+            "last_params": {
+              "method": "GET"
+            }
+          },
+          "https://api.kie.ai/api/v1/jobs/recordInfo?taskId=a4c0af8a2363a7a2782547386939b438": {
+            "success_count": 5,
+            "failure_count": 0,
+            "consecutive_failures": 0,
+            "last_success": "2026-03-09T02:11:45.754627+00:00",
+            "last_failure": null,
+            "last_status_code": 200,
+            "last_error_type": null,
+            "last_error_message": null,
+            "last_params": {
+              "method": "GET"
+            }
+          },
+          "https://api.kie.ai/api/v1/jobs/recordInfo?taskId=61fa97bf09a2c4457a9d76a74ebff3b5": {
+            "success_count": 4,
+            "failure_count": 0,
+            "consecutive_failures": 0,
+            "last_success": "2026-03-09T02:11:58.831104+00:00",
+            "last_failure": null,
+            "last_status_code": 200,
+            "last_error_type": null,
+            "last_error_message": null,
+            "last_params": {
+              "method": "GET"
+            }
+          },
+          "https://api.kie.ai/api/v1/jobs/recordInfo?taskId=b789b86d7e7c3a076ba975bd1475bdd8": {
+            "success_count": 4,
+            "failure_count": 1,
+            "consecutive_failures": 0,
+            "last_success": "2026-03-09T04:11:42.225907+00:00",
+            "last_failure": "2026-03-09T04:11:40.327198+00:00",
+            "last_status_code": 200,
+            "last_error_type": null,
+            "last_error_message": null,
+            "last_params": {
+              "method": "GET"
+            }
+          },
+          "https://api.kie.ai/api/v1/jobs/recordInfo?taskId=0d0d17106268bb2b96a56aa7907f82e0": {
+            "success_count": 5,
+            "failure_count": 0,
+            "consecutive_failures": 0,
+            "last_success": "2026-03-09T04:17:09.216638+00:00",
+            "last_failure": null,
+            "last_status_code": 200,
+            "last_error_type": null,
+            "last_error_message": null,
+            "last_params": {
+              "method": "GET"
+            }
+          },
+          "https://api.kie.ai/api/v1/jobs/recordInfo?taskId=458f1595bb45613478fa93375ab7dbf0": {
+            "success_count": 4,
+            "failure_count": 0,
+            "consecutive_failures": 0,
+            "last_success": "2026-03-09T04:17:22.298615+00:00",
+            "last_failure": null,
+            "last_status_code": 200,
+            "last_error_type": null,
+            "last_error_message": null,
+            "last_params": {
+              "method": "GET"
+            }
+          },
+          "https://api.kie.ai/api/v1/jobs/recordInfo?taskId=05b701f6e12afb1489f00beb9b5adb2b": {
+            "success_count": 4,
+            "failure_count": 0,
+            "consecutive_failures": 0,
+            "last_success": "2026-03-09T04:17:35.374469+00:00",
+            "last_failure": null,
+            "last_status_code": 200,
+            "last_error_type": null,
+            "last_error_message": null,
+            "last_params": {
+              "method": "GET"
+            }
+          },
+          "https://api.kie.ai/api/v1/jobs/recordInfo?taskId=bb13cc7e16f13e5ccfacf361d413b432": {
+            "success_count": 5,
+            "failure_count": 0,
+            "consecutive_failures": 0,
+            "last_success": "2026-03-09T04:17:51.661044+00:00",
+            "last_failure": null,
+            "last_status_code": 200,
+            "last_error_type": null,
+            "last_error_message": null,
+            "last_params": {
+              "method": "GET"
+            }
+          },
+          "https://api.kie.ai/api/v1/jobs/recordInfo?taskId=52c36d1423c2fa45ee8a03cec95d8694": {
+            "success_count": 4,
+            "failure_count": 0,
+            "consecutive_failures": 0,
+            "last_success": "2026-03-09T04:18:04.743570+00:00",
+            "last_failure": null,
+            "last_status_code": 200,
+            "last_error_type": null,
+            "last_error_message": null,
+            "last_params": {
+              "method": "GET"
+            }
+          },
+          "https://api.kie.ai/api/v1/jobs/recordInfo?taskId=e31c58d9b209bf672d19361f3e5881eb": {
+            "success_count": 6,
+            "failure_count": 0,
+            "consecutive_failures": 0,
+            "last_success": "2026-03-09T04:18:24.259122+00:00",
+            "last_failure": null,
+            "last_status_code": 200,
+            "last_error_type": null,
+            "last_error_message": null,
+            "last_params": {
+              "method": "GET"
+            }
+          },
+          "https://api.kie.ai/api/v1/jobs/recordInfo?taskId=4094d09c4f2fa5392a560bf87c39f234": {
+            "success_count": 4,
+            "failure_count": 0,
+            "consecutive_failures": 0,
+            "last_success": "2026-03-09T04:18:37.350518+00:00",
+            "last_failure": null,
+            "last_status_code": 200,
+            "last_error_type": null,
+            "last_error_message": null,
+            "last_params": {
+              "method": "GET"
+            }
+          },
+          "https://api.kie.ai/api/v1/jobs/recordInfo?taskId=2dccb7170d119316c41b6a8e42267ddc": {
+            "success_count": 14,
+            "failure_count": 0,
+            "consecutive_failures": 0,
+            "last_success": "2026-03-09T04:19:22.510875+00:00",
+            "last_failure": null,
+            "last_status_code": 200,
+            "last_error_type": null,
+            "last_error_message": null,
+            "last_params": {
+              "method": "GET"
+            }
+          },
+          "https://api.kie.ai/api/v1/jobs/recordInfo?taskId=340b8f943a75d60efa394aee8115b8ea": {
+            "success_count": 4,
+            "failure_count": 0,
+            "consecutive_failures": 0,
+            "last_success": "2026-03-09T04:19:35.596407+00:00",
+            "last_failure": null,
+            "last_status_code": 200,
+            "last_error_type": null,
+            "last_error_message": null,
+            "last_params": {
+              "method": "GET"
+            }
+          },
+          "https://api.kie.ai/api/v1/jobs/recordInfo?taskId=aff7cc80dcdbc39a07e4f99ed7849bc1": {
+            "success_count": 39,
+            "failure_count": 0,
+            "consecutive_failures": 0,
+            "last_success": "2026-03-10T09:58:17.681566+00:00",
+            "last_failure": null,
+            "last_status_code": 200,
+            "last_error_type": null,
+            "last_error_message": null,
+            "last_params": {
+              "method": "GET"
+            }
+          },
+          "https://api.kie.ai/api/v1/jobs/recordInfo?taskId=360832638e66356bcc91643801975a6f": {
+            "success_count": 7,
+            "failure_count": 0,
+            "consecutive_failures": 0,
+            "last_success": "2026-03-10T14:53:43.364979+00:00",
+            "last_failure": null,
+            "last_status_code": 200,
+            "last_error_type": null,
+            "last_error_message": null,
+            "last_params": {
+              "method": "GET"
+            }
           }
         }
       }
@@ -1094,6 +1218,26 @@
         },
         "last_failure_url": "https://api.kie.ai/api/v1/generate",
         "status": "degraded"
+      }
+    },
+    "nano banana pro": {
+      "image": {
+        "status": "degraded",
+        "last_success_url": null,
+        "last_failure_url": "https://api.kie.ai/api/v1/jobs/createTask",
+        "endpoints": {
+          "https://api.kie.ai/api/v1/jobs/createTask": {
+            "success_count": 0,
+            "failure_count": 1,
+            "consecutive_failures": 1,
+            "last_success": null,
+            "last_failure": "2026-03-10T14:53:20.462078+00:00",
+            "last_status_code": 500,
+            "last_error_type": "api_error",
+            "last_error_message": "The model name you specified is not supported. Please verify your input and use one of the supported models provided by KIE.",
+            "last_params": {}
+          }
+        }
       }
     }
   }

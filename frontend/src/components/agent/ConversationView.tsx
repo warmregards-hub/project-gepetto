@@ -41,7 +41,13 @@ export function ConversationView() {
     };
 
     const stripSystemReminders = (content: string) => {
-        return content.replace(/<system-reminder>[\s\S]*?<\/system-reminder>/gi, '').trim();
+        return content
+            .replace(/<system-reminder>[\s\S]*?<\/system-reminder>/gi, '')
+            .replace(/<plan>[\s\S]*?<\/plan>/gi, '')
+            .replace(/<plan-confirmed[^>]*>[\s\S]*?<\/plan-confirmed>/gi, '')
+            .replace(/<plan-confirmed[^>]*>/gi, '')
+            .replace(/<\/plan-confirmed>/gi, '')
+            .trim();
     };
 
     const normalizeImageSrc = (rawSrc: string) => {
@@ -151,7 +157,7 @@ export function ConversationView() {
                         </span>
                     </div>
 
-                    <div className="whitespace-pre-wrap flex-1">
+                    <div className="flex-1">
                         <ReactMarkdown
                             components={{
                                 p: ({ children, ...props }: any) => {
@@ -165,9 +171,9 @@ export function ConversationView() {
                                     }
 
                                     const hasImage = props.node?.children?.some((c: any) => c.tagName === 'img');
-                                    if (hasImage) return <div className="mb-6">{children}</div>;
+                                    if (hasImage) return <div className="mb-3">{children}</div>;
 
-                                    return <p className="mb-6 last:mb-0 text-2xl font-bold leading-relaxed text-zinc-900" {...props}>{children}</p>;
+                                    return <p className="mb-3 last:mb-0 text-2xl font-bold leading-relaxed text-zinc-900" {...props}>{children}</p>;
                                 },
                                 a: ({ href, ...props }: any) => {
                                     const fullHref = href?.startsWith('/api/') ? `${API_BASE_URL}${href}` : href;
@@ -249,9 +255,9 @@ export function ConversationView() {
                                         </div>
                                     );
                                 },
-                                ul: ({ ...props }: any) => <ul className="list-disc pl-10 mb-8 space-y-4 text-zinc-800 text-2xl font-bold" {...props} />,
-                                ol: ({ ...props }: any) => <ol className="list-decimal pl-10 mb-8 space-y-4 text-zinc-800 text-2xl font-bold" {...props} />,
-                                li: ({ ...props }: any) => <li className="pl-2" {...props} />,
+                                ul: ({ ...props }: any) => <ul className="list-disc pl-10 mb-4 space-y-1 text-zinc-800 text-2xl font-bold" {...props} />,
+                                ol: ({ ...props }: any) => <ol className="list-decimal pl-10 mb-4 space-y-1 text-zinc-800 text-2xl font-bold" {...props} />,
+                                li: ({ ...props }: any) => <li className="pl-2 [&>p]:mb-0 [&>p]:leading-snug" {...props} />,
                                 em: ({ ...props }: any) => <em className="font-['Instrument_Serif'] italic text-zinc-900" {...props} />,
                                 strong: ({ ...props }: any) => <strong className="font-['Instrument_Serif'] italic font-normal text-zinc-900" {...props} />,
                                 code: ({ inline, children, ...props }: any) => {

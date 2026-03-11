@@ -170,6 +170,18 @@ class KieClient:
         self.registry = EndpointRegistry(settings.endpoint_registry_path)
         self.registry.load()
         self.model_cache_path = Path(settings.model_cache_path)
+        self.trace_enabled = settings.kie_trace_enabled
+        self.trace_path = Path(settings.kie_trace_path)
+
+    def _trace(self, payload: Dict[str, Any]) -> None:
+        if not self.trace_enabled:
+            return
+        try:
+            self.trace_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(self.trace_path, "a", encoding="utf-8") as f:
+                f.write(json.dumps(payload, ensure_ascii=False) + "\n")
+        except Exception:
+            return
 
     @staticmethod
     def initialize_registry() -> None:
@@ -364,7 +376,7 @@ class KieClient:
                 size=size,
             )
 
-        payload_base: Dict[str, Any] = {"prompt": prompt}
+        payload_base: Dict[str, Any] = {"prompt": prompt, "trace_id": uuid.uuid4().hex}
         if kind == "image":
             payload_base["n"] = count
             payload_base["size"] = size
@@ -386,7 +398,8 @@ class KieClient:
                 endpoints = [ep for ep in endpoints if "/api/v1/generate" not in ep and "/api/v1/video/generate" not in ep]
 
             for endpoint in endpoints:
-                post_result = await self._post_with_retries(endpoint, payload, model, kind)
+                trace_id = payload_base.get("trace_id") if isinstance(payload_base, dict) else None
+                post_result = await self._post_with_retries(endpoint, payload, model, kind, trace_id=trace_id)
                 if not post_result["ok"]:
                     errors.append(post_result)
                     continue
@@ -480,7 +493,8 @@ class KieClient:
             payload["callBackUrl"] = callback_url
 
         endpoint = f"{self.base_url}/api/v1/jobs/createTask"
-        post_result = await self._post_with_retries(endpoint, payload, requested_model, "image")
+        trace_id = payload.get("trace_id") if isinstance(payload, dict) else None
+        post_result = await self._post_with_retries(endpoint, payload, requested_model, "image", trace_id=trace_id)
         if not post_result["ok"]:
             return post_result
 
@@ -543,7 +557,7 @@ class KieClient:
         endpoint = f"{self.base_url}/api/v1/jobs/recordInfo?taskId={task_id}"
         for _ in range(40):
             await asyncio.sleep(3)
-            result = await self._get_with_retries(endpoint, model, "poll_image")
+            result = await self._get_with_retries(endpoint, model, "poll_image", trace_id=task_id)
             if not result["ok"]:
                 continue
             data = result["data"]
@@ -615,6 +629,7 @@ class KieClient:
         payload: Dict[str, Any],
         model: str,
         kind: str,
+        trace_id: Optional[str] = None,
         max_attempts: int = 3,
     ) -> Dict[str, Any]:
         retryable = {408, 409, 425, 429, 500, 502, 503, 504}
@@ -623,6 +638,14 @@ class KieClient:
             try:
                 response = await self.client.post(endpoint, json=payload)
                 if response.status_code in retryable and attempt < max_attempts - 1:
+                    self._trace({
+                        "trace_id": trace_id,
+                        "event": "retryable_status",
+                        "kind": kind,
+                        "model": model,
+                        "endpoint": endpoint,
+                        "status": response.status_code,
+                    })
                     self.registry.record_failure(model, kind, endpoint, "retryable_status", response.status_code, response.text)
                     await asyncio.sleep(backoff[min(attempt, len(backoff) - 1)])
                     continue
@@ -634,9 +657,27 @@ class KieClient:
                     if api_code != "200" and api_code != "0" and api_code != "None":
                         msg = data.get("msg") or data.get("message") or "Unknown API logic error"
                         if api_code in ["408", "429", "500", "502", "503", "504"] and attempt < max_attempts - 1:
+                            self._trace({
+                                "trace_id": trace_id,
+                                "event": "api_error_retryable",
+                                "kind": kind,
+                                "model": model,
+                                "endpoint": endpoint,
+                                "status": api_code,
+                                "message": msg,
+                            })
                             self.registry.record_failure(model, kind, endpoint, "api_error_retryable", 500, msg)
                             await asyncio.sleep(backoff[min(attempt, len(backoff) - 1)])
                             continue
+                        self._trace({
+                            "trace_id": trace_id,
+                            "event": "api_error",
+                            "kind": kind,
+                            "model": model,
+                            "endpoint": endpoint,
+                            "status": api_code,
+                            "message": msg,
+                        })
                         self.registry.record_failure(model, kind, endpoint, "api_error", 500, msg)
                         return {
                             "ok": False,
@@ -647,12 +688,33 @@ class KieClient:
                             "model": model,
                         }
 
+                urls = self._extract_urls(data)
+                task_id = self._extract_task_id(data)
+                self._trace({
+                    "trace_id": trace_id,
+                    "event": "success",
+                    "kind": kind,
+                    "model": model,
+                    "endpoint": endpoint,
+                    "status": response.status_code,
+                    "task_id": task_id,
+                    "urls": urls,
+                })
                 self.registry.record_success(model, kind, endpoint, payload)
                 print(f"[Project Gepetto Kie Client] SUCCESS kind={kind} model={model} endpoint={endpoint} payload={payload}")
                 return {"ok": True, "data": data, "endpoint": endpoint}
             except httpx.HTTPStatusError as e:
                 status = e.response.status_code
                 body = e.response.text
+                self._trace({
+                    "trace_id": trace_id,
+                    "event": "http_status",
+                    "kind": kind,
+                    "model": model,
+                    "endpoint": endpoint,
+                    "status": status,
+                    "message": body[:500],
+                })
                 self.registry.record_failure(model, kind, endpoint, "http_status", status, body)
                 if status in retryable and attempt < max_attempts - 1:
                     await asyncio.sleep(backoff[min(attempt, len(backoff) - 1)])
@@ -666,6 +728,15 @@ class KieClient:
                     "model": model,
                 }
             except (httpx.TimeoutException, httpx.RequestError) as e:
+                self._trace({
+                    "trace_id": trace_id,
+                    "event": "request_error",
+                    "kind": kind,
+                    "model": model,
+                    "endpoint": endpoint,
+                    "status": None,
+                    "message": str(e),
+                })
                 self.registry.record_failure(model, kind, endpoint, "request_error", None, str(e))
                 if attempt < max_attempts - 1:
                     await asyncio.sleep(backoff[min(attempt, len(backoff) - 1)])
@@ -692,6 +763,7 @@ class KieClient:
         endpoint: str,
         model: str,
         kind: str,
+        trace_id: Optional[str] = None,
         max_attempts: int = 2,
     ) -> Dict[str, Any]:
         retryable = {408, 409, 425, 429, 500, 502, 503, 504}
@@ -700,16 +772,45 @@ class KieClient:
             try:
                 response = await self.client.get(endpoint)
                 if response.status_code in retryable and attempt < max_attempts - 1:
+                    self._trace({
+                        "trace_id": trace_id,
+                        "event": "retryable_status",
+                        "kind": kind,
+                        "model": model,
+                        "endpoint": endpoint,
+                        "status": response.status_code,
+                    })
                     self.registry.record_failure(model, kind, endpoint, "retryable_status", response.status_code, response.text)
                     await asyncio.sleep(backoff[min(attempt, len(backoff) - 1)])
                     continue
                 response.raise_for_status()
                 data = response.json()
+                urls = self._extract_urls(data)
+                task_id = self._extract_task_id(data)
+                self._trace({
+                    "trace_id": trace_id,
+                    "event": "success",
+                    "kind": kind,
+                    "model": model,
+                    "endpoint": endpoint,
+                    "status": response.status_code,
+                    "task_id": task_id,
+                    "urls": urls,
+                })
                 self.registry.record_success(model, kind, endpoint, {"method": "GET"})
                 return {"ok": True, "data": data, "endpoint": endpoint}
             except httpx.HTTPStatusError as e:
                 status = e.response.status_code
                 body = e.response.text
+                self._trace({
+                    "trace_id": trace_id,
+                    "event": "http_status",
+                    "kind": kind,
+                    "model": model,
+                    "endpoint": endpoint,
+                    "status": status,
+                    "message": body[:500],
+                })
                 self.registry.record_failure(model, kind, endpoint, "http_status", status, body)
                 if status in retryable and attempt < max_attempts - 1:
                     await asyncio.sleep(backoff[min(attempt, len(backoff) - 1)])
@@ -722,6 +823,15 @@ class KieClient:
                     "message": body[:500],
                 }
             except (httpx.TimeoutException, httpx.RequestError) as e:
+                self._trace({
+                    "trace_id": trace_id,
+                    "event": "request_error",
+                    "kind": kind,
+                    "model": model,
+                    "endpoint": endpoint,
+                    "status": None,
+                    "message": str(e),
+                })
                 self.registry.record_failure(model, kind, endpoint, "request_error", None, str(e))
                 if attempt < max_attempts - 1:
                     await asyncio.sleep(backoff[min(attempt, len(backoff) - 1)])

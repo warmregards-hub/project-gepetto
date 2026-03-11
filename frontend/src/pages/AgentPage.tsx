@@ -8,6 +8,7 @@ import { useAgent } from '../hooks/useAgent';
 import { useVoice } from '../hooks/useVoice';
 import { useProjectStore } from '../stores/projectStore';
 import { useLayoutStore } from '../stores/layoutStore';
+import { fetchClient } from '../lib/api';
 import { useSessionStore } from '../stores/sessionStore';
 import { Menu } from 'lucide-react';
 
@@ -18,6 +19,8 @@ export function AgentPage() {
     const { startNewSession } = useSessionStore();
     const { setSidebarOpen } = useLayoutStore();
     const [draftText, setDraftText] = useState('');
+    const [kieTraceEntry, setKieTraceEntry] = useState<string | null>(null);
+    const [isTraceLoading, setIsTraceLoading] = useState(false);
 
     // Mock initial data load for phase 1 testing
     useEffect(() => {
@@ -46,6 +49,16 @@ export function AgentPage() {
         window.addEventListener('gepetto-voice-brief', handler as EventListener);
         return () => window.removeEventListener('gepetto-voice-brief', handler as EventListener);
     }, []);
+
+    const refreshTrace = async () => {
+        setIsTraceLoading(true);
+        try {
+            const data = await fetchClient('/api/voice/kie-trace/latest');
+            setKieTraceEntry(data?.entry ?? null);
+        } finally {
+            setIsTraceLoading(false);
+        }
+    };
 
     const handleSend = (msg: string) => {
         sendMessage(msg);
@@ -90,8 +103,23 @@ export function AgentPage() {
                             {voiceError ? ` · ${voiceError}` : ''}
                         </div>
                     )}
+                    <div className="flex items-center gap-3">
+                        <button
+                            type="button"
+                            onClick={refreshTrace}
+                            className="text-[11px] uppercase tracking-widest font-black text-zinc-500 border border-zinc-200 rounded-lg px-3 py-1.5 hover:bg-zinc-50"
+                            disabled={isTraceLoading}
+                        >
+                            {isTraceLoading ? 'Loading...' : 'Kie Trace'}
+                        </button>
+                        {kieTraceEntry && (
+                            <div className="text-[11px] text-zinc-500 font-mono truncate">
+                                {kieTraceEntry}
+                            </div>
+                        )}
+                    </div>
                     <div className="flex items-end gap-3 md:gap-6">
-                    <VoiceInput
+                        <VoiceInput
                         isRecording={isRecording}
                         onStart={startRecording}
                         onStop={stopRecording}

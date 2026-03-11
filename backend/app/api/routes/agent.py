@@ -51,6 +51,9 @@ async def chat_with_agent(
 ):
     from app.services.gemini_agent import GeminiAgentService
 
+    
+
+
     project_id = request.project_id
     project_service = ProjectService(db)
     await project_service.ensure_project(project_id)
@@ -95,19 +98,26 @@ async def chat_with_agent(
                     session_name=conversation.name,
                 )
 
-    history: list[dict] = []
+    history_rows_list: list[Message] = []
     if session_id:
         history_rows = await db.execute(
             select(Message)
             .where(Message.conversation_id == session_id)
             .order_by(Message.created_at.asc())
         )
-        history = [{"role": m.role, "content": m.content} for m in history_rows.scalars().all()]
+        history_rows_list = list(history_rows.scalars().all())
+
+    history: list[dict] = []
+    if history_rows_list:
+        history = [{"role": m.role, "content": m.content} for m in history_rows_list]
     elif request.conversation_history:
         history = [{"role": m.role, "content": m.content} for m in request.conversation_history]
 
     agent = GeminiAgentService(db, session_id=session_id)
-    result = await agent.process_chat(request.message, request.project_id or "default_project", history)
+    result = await agent.process_chat(request.message or "", request.project_id or "default_project", history)
+
+    response_content = result.get("content", "")
+    response_content = re.sub(r"<plan>[\s\S]*?</plan>", "", response_content, flags=re.IGNORECASE).strip()
 
     now = datetime.now(timezone.utc)
     db.add(Message(conversation_id=session_id, role="user", content=request.message, created_at=now))
@@ -116,7 +126,7 @@ async def chat_with_agent(
     await db.commit()
 
     return ChatResponse(
-        content=result.get("content", "Error processing request."),
+        content=response_content or "Error processing request.",
         tool_calls_executed=result.get("tool_calls_executed", 0),
         cost_usd=result.get("cost_usd", 0.0),
         session_id=session_id,
